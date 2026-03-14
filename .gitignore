@@ -1,0 +1,27 @@
+# Secrets
+*.env
+*.secret
+.env*
+*.pem
+*.key
+
+# Don't commit real dotfiles
+.zshrc
+.bashrc
+.gitconfig
+
+# Build artifacts
+*.o
+*.so
+*.a
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
