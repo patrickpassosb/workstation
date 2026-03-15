@@ -99,3 +99,65 @@ clone_or_pull() {
   fi
 }
 
+# ── GitHub release installer ─────────────────────────────────────────
+# Downloads a binary release from GitHub and installs it.
+#   github_release_install <owner/repo> <tag> <asset_filename> <binary_name>
+# The asset is downloaded, extracted (tar.gz/zip), and the binary is
+# installed to $INSTALL_PREFIX/bin/.
+github_release_install() {
+  local repo="$1"      # e.g. "jesseduffield/lazygit"
+  local tag="$2"       # e.g. "v0.50.0"
+  local asset="$3"     # e.g. "lazygit_0.50.0_Linux_x86_64.tar.gz"
+  local binary="$4"    # e.g. "lazygit"
+
+  if is_installed "$binary"; then
+    log "$binary is already installed: $(command -v "$binary")"
+    return 0
+  fi
+
+  local url="https://github.com/${repo}/releases/download/${tag}/${asset}"
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+
+  log "Downloading ${repo} ${tag} from GitHub releases..."
+  curl -fSL "$url" -o "$tmp_dir/$asset"
+
+  case "$asset" in
+    *.tar.gz|*.tgz) tar -xzf "$tmp_dir/$asset" -C "$tmp_dir" ;;
+    *.zip)          unzip -o "$tmp_dir/$asset" -d "$tmp_dir" ;;
+  esac
+
+  local bin_path
+  bin_path="$(find "$tmp_dir" -name "$binary" -type f -print -quit)"
+  if [[ -z "$bin_path" ]]; then
+    err "Binary '$binary' not found in release archive"
+    rm -rf "$tmp_dir"
+    return 1
+  fi
+
+  sudo install -m 0755 "$bin_path" "${INSTALL_PREFIX}/bin/${binary}"
+  rm -rf "$tmp_dir"
+  log "Installed $binary to ${INSTALL_PREFIX}/bin/${binary}"
+}
+
+# ── NVM/npm helpers ──────────────────────────────────────────────────
+ensure_nvm() {
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  if [[ -s "$NVM_DIR/nvm.sh" ]]; then
+    # shellcheck disable=SC1091
+    source "$NVM_DIR/nvm.sh"
+    return 0
+  fi
+  warn "NVM is not installed. Install it first (installers/nvm.sh or setup.sh)."
+  return 1
+}
+
+ensure_node() {
+  if is_installed node; then return 0; fi
+  if ensure_nvm; then
+    nvm use default 2>/dev/null || nvm use --lts 2>/dev/null || true
+    if is_installed node; then return 0; fi
+  fi
+  warn "Node.js is not available. Install it first (tools/nodejs.sh)."
+  return 1
+}

@@ -26,7 +26,6 @@ run_script() {
 }
 
 INSTALLER_SCRIPTS=(
-  nvm
   oh-my-zsh
   homebrew
   brave

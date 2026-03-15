@@ -3,30 +3,66 @@ set -euo pipefail
 
 # Pop!_OS Setup Orchestrator
 # Modular setup for a fresh Pop!_OS installation.
-# Usage: ./setup.sh [--skip-source] [--skip-installers] [--skip-configs]
+# Usage: ./setup.sh [--level 0|1|2|3] [--skip-tools] [--skip-installers] [--skip-configs]
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/helpers.sh"
 
 # ── Parse flags ───────────────────────────────────────────────────────
-SKIP_SOURCE=false
+LEVEL=""
+SKIP_TOOLS=false
 SKIP_INSTALLERS=false
 SKIP_CONFIGS=false
 
-for arg in "$@"; do
-  case "$arg" in
-    --skip-source)     SKIP_SOURCE=true ;;
-    --skip-installers) SKIP_INSTALLERS=true ;;
-    --skip-configs)    SKIP_CONFIGS=true ;;
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --level)
+      LEVEL="$2"
+      shift 2
+      ;;
+    --level=*)
+      LEVEL="${1#--level=}"
+      shift
+      ;;
+    --skip-tools|--skip-source) SKIP_TOOLS=true; shift ;;
+    --skip-installers) SKIP_INSTALLERS=true; shift ;;
+    --skip-configs)    SKIP_CONFIGS=true; shift ;;
     --help|-h)
-      echo "Usage: ./setup.sh [--skip-source] [--skip-installers] [--skip-configs]"
+      echo "Usage: ./setup.sh [--level 0|1|2|3] [--skip-tools] [--skip-installers] [--skip-configs]"
+      echo ""
+      echo "Levels:"
+      echo "  0  No-compile     — all pre-built (apt, flatpak, npm, GitHub releases)   ~15 min"
+      echo "  1  Beginner       — 6 small Rust/Go CLIs compiled from source            ~30 min"
+      echo "  2  Intermediate   — 18 tools compiled from source                        ~1-2 hours"
+      echo "  3  Hard mode      — all 30 tools compiled from source                    ~3-5 hours"
       exit 0
       ;;
-    *) warn "Unknown flag: $arg" ;;
+    *) warn "Unknown flag: $1"; shift ;;
   esac
 done
 
-# ── gsettings helpers (from original setup.sh) ────────────────────────
+# ── Interactive level prompt if not specified ─────────────────────────
+if [[ -z "$LEVEL" ]]; then
+  echo ""
+  echo "Select a build level:"
+  echo ""
+  echo "  0  No-compile     — all pre-built (apt, flatpak, npm, GitHub releases)   ~15 min"
+  echo "  1  Beginner       — 6 small Rust/Go CLIs compiled from source            ~30 min"
+  echo "  2  Intermediate   — 18 tools compiled from source                        ~1-2 hours"
+  echo "  3  Hard mode      — all 30 tools compiled from source                    ~3-5 hours"
+  echo ""
+  read -rp "Level [0-3]: " LEVEL
+fi
+
+if [[ ! "$LEVEL" =~ ^[0-3]$ ]]; then
+  err "Invalid level: $LEVEL (must be 0, 1, 2, or 3)"
+  exit 1
+fi
+
+LEVEL_NAMES=("No-compile" "Beginner" "Intermediate" "Hard mode")
+log "Selected level: $LEVEL — ${LEVEL_NAMES[$LEVEL]}"
+
+# ── gsettings helpers ─────────────────────────────────────────────────
 set_gsettings_if_key_exists() {
   local schema="$1" key="$2" value="$3"
   if gsettings list-keys "$schema" 2>/dev/null | grep -qx "$key"; then
@@ -168,11 +204,11 @@ done
 install_jetbrains_mono_nerd_font || warn "Font installation failed"
 
 # ══════════════════════════════════════════════════════════════════════
-# Phase 2: Rustup
+# Phase 2: Toolchains (rustup + nvm)
 # ══════════════════════════════════════════════════════════════════════
 log ""
 log "═══════════════════════════════════════════════════════"
-log "  Phase 2: Rustup"
+log "  Phase 2: Toolchains"
 log "═══════════════════════════════════════════════════════"
 
 bash "$SCRIPT_DIR/installers/rustup.sh" || warn "Rustup installation failed"
@@ -182,15 +218,22 @@ if [[ -f "$HOME/.cargo/env" ]]; then
   source "$HOME/.cargo/env"
 fi
 
+bash "$SCRIPT_DIR/installers/nvm.sh" || warn "NVM installation failed"
+
+# Source nvm for subsequent installs
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+# shellcheck disable=SC1091
+[[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
+
 # ══════════════════════════════════════════════════════════════════════
-# Phase 3: From-source (clone repos only — build manually later)
+# Phase 3: Tools (level-based: prebuilt or build)
 # ══════════════════════════════════════════════════════════════════════
-if [[ "$SKIP_SOURCE" == "false" ]]; then
+if [[ "$SKIP_TOOLS" == "false" ]]; then
   log ""
-  bash "$SCRIPT_DIR/from-source/install-all.sh" || warn "Some from-source clones failed"
+  bash "$SCRIPT_DIR/tools/install-all.sh" "$LEVEL" || warn "Some tool installations failed"
 else
   log ""
-  log "Skipping from-source clones (--skip-source)"
+  log "Skipping tools (--skip-tools)"
 fi
 
 # ══════════════════════════════════════════════════════════════════════
@@ -256,6 +299,6 @@ fi
 
 log ""
 log "═══════════════════════════════════════════════════════"
-log "  Setup complete!"
+log "  Setup complete! (Level $LEVEL — ${LEVEL_NAMES[$LEVEL]})"
 log "═══════════════════════════════════════════════════════"
 log "You may need to log out/in for all changes to take effect."
