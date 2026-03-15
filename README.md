@@ -2,7 +2,7 @@
 
 Automated setup scripts for Ubuntu-based Linux workstations (Pop!_OS, Ubuntu, Linux Mint, etc.).
 
-Builds most tools **from source** for learning purposes, with proprietary apps installed via their official channels. Every script is idempotent and can run individually or as part of the full orchestrated setup.
+**Clones** tool source repos for you to **compile manually** at your own pace, with proprietary apps installed via their official channels. Each script prints build instructions after cloning. Every script is idempotent and can run individually or as part of the full orchestrated setup.
 
 ## Quick start
 
@@ -24,10 +24,10 @@ The orchestrator runs in 6 phases and will prompt for `sudo` as needed.
 
 ## Run individual scripts
 
-Every script is standalone. To build just one tool:
+Every script is standalone:
 
 ```bash
-./from-source/htop.sh       # build htop from source
+./from-source/htop.sh       # clone htop source + print build instructions
 ./installers/brave.sh        # install Brave browser
 ./configs/restore-configs.sh # restore dotfiles (backs up existing ones first)
 ```
@@ -38,8 +38,8 @@ Every script is standalone. To build just one tool:
 |-------|-------------|
 | **0 - Preflight** | Checks internet connectivity |
 | **1 - Bootstrap** | `apt update`, installs base tools (`build-essential`, `curl`, `flatpak`, etc.), creates productivity folders, installs JetBrains Mono Nerd Font |
-| **2 - Rustup** | Installs Rust toolchain (needed for building uv, ripgrep, fd, starship) |
-| **3 - From-source** | Builds 30 tools from source (C, Rust, Go, TypeScript) |
+| **2 - Rustup** | Installs Rust toolchain (needed later to build uv, ripgrep, fd, starship) |
+| **3 - From-source** | Clones 30 tool repos to `~/src/` and prints build instructions for each |
 | **4 - Installers** | Installs proprietary/packaged apps (Brave, Chrome, Cursor, Warp, Discord, etc.) |
 | **5 - Configs** | Restores shell configs, configures Flameshot as Print Screen, SSH key generation |
 | **6 - Cleanup** | `apt autoclean`, `flatpak update`, prints summary |
@@ -113,8 +113,7 @@ Environment variables you can set before running:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SRC_DIR` | `~/src` | Where source repos are cloned |
-| `INSTALL_PREFIX` | `/usr/local` | Where from-source builds install |
-| `CLEANUP_SOURCE` | `false` | Set to `true` to delete source trees after building |
+| `INSTALL_PREFIX` | `/usr/local` | Where from-source builds install (used in printed instructions) |
 | `ANTIGRAVITY_DEB_URL` | *(empty)* | Direct .deb URL for Antigravity (requires manual download) |
 
 ## Security

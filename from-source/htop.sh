@@ -6,23 +6,13 @@ VERSION=3.4.1
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/helpers.sh"
 
-if is_installed htop && [[ "$(htop --version)" == *"$VERSION"* ]]; then
-  log "htop $VERSION is already installed, skipping."
-  exit 0
-fi
-
-ensure_build_deps build-essential autoconf automake libncursesw5-dev
-
 clone_or_pull https://github.com/htop-dev/htop.git htop "$VERSION"
 
-cd "$SRC_DIR/htop"
-
-log "Building htop $VERSION ..."
-./autogen.sh
-./configure --prefix="$INSTALL_PREFIX"
-make -j"$(nproc)"
-sudo make install
-
-log "htop $VERSION installed successfully."
-
-cleanup_source htop
+log "htop $VERSION cloned to $SRC_DIR/htop"
+log "To build manually:"
+log "  sudo apt install build-essential autoconf automake libncursesw5-dev"
+log "  cd $SRC_DIR/htop"
+log "  ./autogen.sh"
+log "  ./configure --prefix=$INSTALL_PREFIX"
+log "  make -j\$(nproc)"
+log "  sudo make install"

@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Requires: go (install via snap install go --classic or from https://go.dev/dl/)
 set -euo pipefail
 
 VERSION=v0.24.1
@@ -7,22 +6,10 @@ VERSION=v0.24.1
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/helpers.sh"
 
-if is_installed lazydocker && [[ "$(lazydocker --version 2>&1)" == *"${VERSION#v}"* ]]; then
-  log "lazydocker $VERSION is already installed, skipping."
-  exit 0
-fi
-
-require_cmd go
-
 clone_or_pull https://github.com/jesseduffield/lazydocker.git lazydocker "$VERSION"
 
-cd "$SRC_DIR/lazydocker"
-
-log "Building lazydocker $VERSION ..."
-go build -o lazydocker .
-
-sudo install -m 0755 lazydocker "$INSTALL_PREFIX/bin/lazydocker"
-
-log "lazydocker $VERSION installed successfully."
-
-cleanup_source lazydocker
+log "lazydocker $VERSION cloned to $SRC_DIR/lazydocker"
+log "To build manually (requires Go):"
+log "  cd $SRC_DIR/lazydocker"
+log "  go build -o lazydocker ."
+log "  sudo install -m 0755 lazydocker $INSTALL_PREFIX/bin/lazydocker"

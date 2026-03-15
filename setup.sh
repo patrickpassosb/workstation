@@ -183,14 +183,14 @@ if [[ -f "$HOME/.cargo/env" ]]; then
 fi
 
 # ══════════════════════════════════════════════════════════════════════
-# Phase 3: From-source builds
+# Phase 3: From-source (clone repos only — build manually later)
 # ══════════════════════════════════════════════════════════════════════
 if [[ "$SKIP_SOURCE" == "false" ]]; then
   log ""
-  bash "$SCRIPT_DIR/from-source/install-all.sh" || warn "Some from-source builds failed"
+  bash "$SCRIPT_DIR/from-source/install-all.sh" || warn "Some from-source clones failed"
 else
   log ""
-  log "Skipping from-source builds (--skip-source)"
+  log "Skipping from-source clones (--skip-source)"
 fi
 
 # ══════════════════════════════════════════════════════════════════════

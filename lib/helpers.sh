@@ -6,7 +6,6 @@ set -euo pipefail
 # ── Defaults ──────────────────────────────────────────────────────────
 SRC_DIR="${SRC_DIR:-$HOME/src}"
 INSTALL_PREFIX="${INSTALL_PREFIX:-/usr/local}"
-CLEANUP_SOURCE="${CLEANUP_SOURCE:-false}"
 
 # ── Logging ───────────────────────────────────────────────────────────
 log()  { printf '[INFO]  %s\n' "$*"; }
@@ -100,10 +99,3 @@ clone_or_pull() {
   fi
 }
 
-cleanup_source() {
-  local name="$1"
-  if [[ "$CLEANUP_SOURCE" == "true" ]]; then
-    log "Cleaning up source: $SRC_DIR/$name"
-    rm -rf "${SRC_DIR:?}/$name"
-  fi
-}
