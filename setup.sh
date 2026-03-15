@@ -375,6 +375,31 @@ if is_installed cosmic-term; then
   log "COSMIC Terminal font set to ${NERD_FONT} ${NERD_FONT_SIZE}"
 fi
 
+# SSH config (remember key after first unlock, no ssh-add needed after reboot)
+SSH_CONFIG="$HOME/.ssh/config"
+mkdir -p "$HOME/.ssh"
+if [[ ! -f "$SSH_CONFIG" ]]; then
+  cat > "$SSH_CONFIG" <<'EOF'
+Host *
+  AddKeysToAgent yes
+  IdentityFile ~/.ssh/id_ed25519
+EOF
+  chmod 600 "$SSH_CONFIG"
+  log "SSH config created (AddKeysToAgent enabled)"
+else
+  log "SSH config already exists — skipping"
+fi
+
+# Starship prompt config
+STARSHIP_CFG="$HOME/.config/starship.toml"
+if [[ ! -f "$STARSHIP_CFG" ]]; then
+  mkdir -p "$(dirname "$STARSHIP_CFG")"
+  cp "$SCRIPT_DIR/configs/starship.toml" "$STARSHIP_CFG"
+  log "Starship config installed"
+else
+  log "Starship config already exists — skipping"
+fi
+
 # Configure Flameshot as Print Screen
 configure_flameshot_shortcut || warn "Flameshot shortcut setup was not fully applied"
 

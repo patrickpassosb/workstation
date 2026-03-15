@@ -1,0 +1,43 @@
+# Starship prompt configuration
+# Docs: https://starship.rs/config/
+
+# Timeout for commands (ms)
+command_timeout = 1000
+
+# Newline between prompt lines
+add_newline = true
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+
+[directory]
+truncation_length = 3
+truncate_to_repo = true
+
+[git_branch]
+format = "[$symbol$branch(:$remote_branch)]($style) "
+
+[git_status]
+format = '([$all_status$ahead_behind]($style) )'
+
+[nodejs]
+format = "[$symbol($version)]($style) "
+detect_files = ["package.json", ".node-version"]
+
+[python]
+format = "[$symbol$version]($style) "
+
+[rust]
+format = "[$symbol$version]($style) "
+
+[golang]
+format = "[$symbol$version]($style) "
+
+[docker_context]
+format = "[$symbol$context]($style) "
+only_with_files = true
+
+[cmd_duration]
+min_time = 2_000
+format = "[took $duration]($style) "

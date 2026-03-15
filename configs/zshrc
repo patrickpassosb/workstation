@@ -118,3 +118,6 @@ fi
 [ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
 
 # export GITHUB_MCP_PAT=<YOUR_TOKEN_HERE>  # Set this after cloning
+
+# Starship prompt
+command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
