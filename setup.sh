@@ -228,7 +228,12 @@ fi
 for dir in "$HOME/TEMP" "$HOME/AppImage" "$HOME/Vídeos/OBS Rec"; do
   mkdir -p "$dir"
 done
-log "Productivity folders created"
+
+# Create GitHub workspace folders
+for dir in "$HOME/GitHub" "$HOME/GitHub/forks" "$HOME/GitHub/learning" "$HOME/GitHub/work"; do
+  mkdir -p "$dir"
+done
+log "Folders created (TEMP, AppImage, OBS Rec, GitHub/{forks,learning,work})"
 
 # Add Nautilus bookmarks
 BOOKMARKS_FILE="$HOME/.config/gtk-3.0/bookmarks"
@@ -306,12 +311,68 @@ log "═════════════════════════
 
 if [[ "$SKIP_CONFIGS" == "false" ]]; then
   bash "$SCRIPT_DIR/configs/restore-configs.sh" || warn "Config restore failed"
-  bash "$SCRIPT_DIR/configs/desktop-settings.sh" || warn "Desktop settings failed"
   bash "$SCRIPT_DIR/configs/startup-apps.sh" || warn "Startup apps failed"
   bash "$SCRIPT_DIR/configs/ide-extensions.sh" || warn "IDE extensions failed"
   bash "$SCRIPT_DIR/configs/browser-extensions.sh" || warn "Browser extensions failed"
+  bash "$SCRIPT_DIR/configs/defaults.sh" || warn "Default apps/wallpaper failed"
 else
   log "Skipping config restore (--skip-configs)"
+fi
+
+# Set zsh as default shell
+if is_installed zsh; then
+  if [[ "$SHELL" != "$(which zsh)" ]]; then
+    log "Setting zsh as default shell..."
+    chsh -s "$(which zsh)"
+    log "Zsh set as default shell (takes effect on next login)"
+  else
+    log "Zsh is already the default shell"
+  fi
+fi
+
+# Set terminal font to JetBrains Mono Nerd Font
+NERD_FONT="JetBrainsMonoNL Nerd Font"
+NERD_FONT_SIZE=12
+
+# GNOME Terminal
+if is_installed gnome-terminal; then
+  PROFILE_ID=$(gsettings get org.gnome.Terminal.ProfilesList default 2>/dev/null | tr -d "'")
+  if [[ -n "$PROFILE_ID" ]]; then
+    PROFILE_PATH="/org/gnome/terminal/legacy/profiles:/:${PROFILE_ID}/"
+    dconf write "${PROFILE_PATH}use-system-font" "false"
+    dconf write "${PROFILE_PATH}font" "'${NERD_FONT} ${NERD_FONT_SIZE}'"
+    log "GNOME Terminal font set to ${NERD_FONT} ${NERD_FONT_SIZE}"
+  else
+    log "No GNOME Terminal profile found — open the terminal once first"
+  fi
+fi
+
+# Alacritty
+if is_installed alacritty; then
+  ALACRITTY_CFG="$HOME/.config/alacritty/alacritty.toml"
+  mkdir -p "$(dirname "$ALACRITTY_CFG")"
+  if ! grep -q "font" "$ALACRITTY_CFG" 2>/dev/null; then
+    cat >> "$ALACRITTY_CFG" <<EOF
+
+[font]
+size = ${NERD_FONT_SIZE}
+
+[font.normal]
+family = "${NERD_FONT}"
+EOF
+    log "Alacritty font set to ${NERD_FONT} ${NERD_FONT_SIZE}"
+  else
+    log "Alacritty already has font config — skipping"
+  fi
+fi
+
+# COSMIC Terminal (Pop!_OS)
+if is_installed cosmic-term; then
+  COSMIC_CFG="$HOME/.config/cosmic/com.system76.CosmicTerm/v1"
+  mkdir -p "$COSMIC_CFG"
+  echo "\"${NERD_FONT}\"" > "$COSMIC_CFG/font_family"
+  echo "${NERD_FONT_SIZE}" > "$COSMIC_CFG/font_size"
+  log "COSMIC Terminal font set to ${NERD_FONT} ${NERD_FONT_SIZE}"
 fi
 
 # Configure Flameshot as Print Screen
@@ -323,18 +384,32 @@ if [[ ! -f "$HOME/.ssh/id_ed25519" ]]; then
   read -rp "Generate a new SSH key? [y/N]: " gen_ssh
   if [[ "$gen_ssh" =~ ^[Yy] ]]; then
     ssh-keygen -t ed25519 -C "$(git config user.email 2>/dev/null || echo "$USER@$(hostname)")" -f "$HOME/.ssh/id_ed25519"
-    log "SSH key generated. Add it to GitHub: cat ~/.ssh/id_ed25519.pub"
+    log "SSH key generated"
   fi
 else
   log "SSH key already exists"
+fi
+
+# GitHub authentication (SSH key upload + CLI auth in one step)
+if is_installed gh; then
+  if ! gh auth status >/dev/null 2>&1; then
+    echo
+    read -rp "Authenticate with GitHub now? (uploads SSH key + authenticates CLI) [y/N]: " do_gh
+    if [[ "$do_gh" =~ ^[Yy] ]]; then
+      log "Starting GitHub authentication..."
+      log "A browser window will open. Paste the code shown in the terminal."
+      gh auth login -p ssh -h github.com -w
+      log "GitHub CLI authenticated and SSH key uploaded"
+    fi
+  else
+    log "GitHub CLI already authenticated"
+  fi
 fi
 
 # Reminders
 log ""
 log "── Post-setup reminders ──────────────────────────────"
 log "  • Run: sudo tailscale up       (join your Tailnet)"
-log "  • Run: gh auth login            (authenticate GitHub CLI)"
-log "  • Add SSH key to GitHub:  cat ~/.ssh/id_ed25519.pub"
 
 # ══════════════════════════════════════════════════════════════════════
 # Cleanup
