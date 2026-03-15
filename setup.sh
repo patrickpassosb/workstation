@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Pop!_OS Setup Orchestrator
-# Modular setup for a fresh Pop!_OS installation.
+# Linux Workstation Setup Orchestrator
+# Modular setup for a fresh Linux installation.
 # Usage: ./setup.sh [--phase 1] [--level 0-10] [--skip-tools] [--skip-installers] [--skip-configs]
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -267,6 +267,13 @@ export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 # shellcheck disable=SC1091
 [[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
 
+# Ensure a Node.js version is available (nvm.sh may have just installed nvm without a node version)
+if ! command -v node >/dev/null 2>&1 && command -v nvm >/dev/null 2>&1; then
+  log "No Node.js version found. Installing LTS..."
+  nvm install --lts
+  nvm alias default lts/*
+fi
+
 # ══════════════════════════════════════════════════════════════════════
 # Tools (level-based: prebuilt or build)
 # ══════════════════════════════════════════════════════════════════════
@@ -299,6 +306,10 @@ log "═════════════════════════
 
 if [[ "$SKIP_CONFIGS" == "false" ]]; then
   bash "$SCRIPT_DIR/configs/restore-configs.sh" || warn "Config restore failed"
+  bash "$SCRIPT_DIR/configs/desktop-settings.sh" || warn "Desktop settings failed"
+  bash "$SCRIPT_DIR/configs/startup-apps.sh" || warn "Startup apps failed"
+  bash "$SCRIPT_DIR/configs/ide-extensions.sh" || warn "IDE extensions failed"
+  bash "$SCRIPT_DIR/configs/browser-extensions.sh" || warn "Browser extensions failed"
 else
   log "Skipping config restore (--skip-configs)"
 fi

@@ -24,3 +24,9 @@ export NVM_DIR="$HOME/.nvm"
 source "$NVM_DIR/nvm.sh"
 
 log "NVM installed: $(nvm --version)"
+
+# Install latest LTS so node/npm are available immediately
+log "Installing Node.js LTS..."
+nvm install --lts
+nvm alias default lts/*
+log "Node.js $(node --version) installed as default"
