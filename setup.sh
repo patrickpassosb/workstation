@@ -3,12 +3,14 @@ set -euo pipefail
 
 # Pop!_OS Setup Orchestrator
 # Modular setup for a fresh Pop!_OS installation.
-# Usage: ./setup.sh [--level 0|1|2|3] [--skip-tools] [--skip-installers] [--skip-configs]
+# Usage: ./setup.sh [--phase 1] [--level 0-10] [--skip-tools] [--skip-installers] [--skip-configs]
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/helpers.sh"
+source "$SCRIPT_DIR/lib/registry.sh"
 
 # ── Parse flags ───────────────────────────────────────────────────────
+PHASE=""
 LEVEL=""
 SKIP_TOOLS=false
 SKIP_INSTALLERS=false
@@ -16,6 +18,14 @@ SKIP_CONFIGS=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --phase)
+      PHASE="$2"
+      shift 2
+      ;;
+    --phase=*)
+      PHASE="${1#--phase=}"
+      shift
+      ;;
     --level)
       LEVEL="$2"
       shift 2
@@ -28,39 +38,71 @@ while [[ $# -gt 0 ]]; do
     --skip-installers) SKIP_INSTALLERS=true; shift ;;
     --skip-configs)    SKIP_CONFIGS=true; shift ;;
     --help|-h)
-      echo "Usage: ./setup.sh [--level 0|1|2|3] [--skip-tools] [--skip-installers] [--skip-configs]"
-      echo ""
-      echo "Levels:"
-      echo "  0  No-compile     — all pre-built (apt, flatpak, npm, GitHub releases)   ~15 min"
-      echo "  1  Beginner       — 6 small Rust/Go CLIs compiled from source            ~30 min"
-      echo "  2  Intermediate   — 18 tools compiled from source                        ~1-2 hours"
-      echo "  3  Hard mode      — all 30 tools compiled from source                    ~3-5 hours"
+      cat <<'HELP'
+Usage: ./setup.sh [--phase 1] [--level 0-10] [--skip-tools] [--skip-installers] [--skip-configs]
+
+Phases:
+  1   CLI Tools & Small Apps (only phase implemented — Phases 2-10 in docs/roadmap.md)
+
+Levels (Phase 1):
+  0   Pre-built          — install everything pre-built, no compilation
+  1   First steps        — 6 Node.js CLIs (npm build)
+  2   Go basics          — + 4 Go CLIs (fzf, lazygit, lazydocker, opencode)
+  3   Rust basics        — + 2 Rust CLIs (ripgrep, fd)
+  4   Rust medium        — + 2 heavier Rust builds (starship, uv)
+  5   Official repos     — + 3 Go projects (gh, tailscale, docker CLI)
+  6   CMake & Meson      — + 2 CMake/Meson apps (flameshot, easyeffects)
+  7   Autotools intro    — + 2 autotools builds (htop, jq)
+  8   Core system        — + 2 system tools (tmux, zsh)
+  9   Core infrastructure— + git from source
+  10  Full source        — + Node.js from source — compile everything
+
+Flags:
+  --skip-tools         skip tool installation entirely
+  --skip-installers    skip proprietary app installers
+  --skip-configs       skip dotfile restoration
+HELP
       exit 0
       ;;
     *) warn "Unknown flag: $1"; shift ;;
   esac
 done
 
-# ── Interactive level prompt if not specified ─────────────────────────
-if [[ -z "$LEVEL" ]]; then
+# ── Interactive phase prompt ──────────────────────────────────────────
+if [[ -z "$PHASE" ]]; then
   echo ""
-  echo "Select a build level:"
+  echo "Select a phase:"
   echo ""
-  echo "  0  No-compile     — all pre-built (apt, flatpak, npm, GitHub releases)   ~15 min"
-  echo "  1  Beginner       — 6 small Rust/Go CLIs compiled from source            ~30 min"
-  echo "  2  Intermediate   — 18 tools compiled from source                        ~1-2 hours"
-  echo "  3  Hard mode      — all 30 tools compiled from source                    ~3-5 hours"
+  echo "  1   CLI Tools & Small Apps (implemented)"
+  echo "  2-10 Coming soon — see docs/roadmap.md"
   echo ""
-  read -rp "Level [0-3]: " LEVEL
+  read -rp "Phase [1]: " PHASE
+  PHASE="${PHASE:-1}"
 fi
 
-if [[ ! "$LEVEL" =~ ^[0-3]$ ]]; then
-  err "Invalid level: $LEVEL (must be 0, 1, 2, or 3)"
+if [[ "$PHASE" != "1" ]]; then
+  err "Phase $PHASE is not yet implemented. See docs/roadmap.md for the roadmap."
   exit 1
 fi
 
-LEVEL_NAMES=("No-compile" "Beginner" "Intermediate" "Hard mode")
-log "Selected level: $LEVEL — ${LEVEL_NAMES[$LEVEL]}"
+# ── Interactive level prompt ──────────────────────────────────────────
+if [[ -z "$LEVEL" ]]; then
+  echo ""
+  echo "Select a level for Phase 1 — CLI Tools & Small Apps:"
+  echo ""
+  for i in $(seq 0 10); do
+    printf "  %-3s %-20s — %s\n" "$i" "${LEVEL_NAMES[$i]}" "${LEVEL_DESCRIPTIONS[$i]}"
+  done
+  echo ""
+  read -rp "Level [0-10]: " LEVEL
+fi
+
+if [[ ! "$LEVEL" =~ ^([0-9]|10)$ ]]; then
+  err "Invalid level: $LEVEL (must be 0-10)"
+  exit 1
+fi
+
+log "Selected: Phase $PHASE, Level $LEVEL — ${LEVEL_NAMES[$LEVEL]}"
 
 # ── gsettings helpers ─────────────────────────────────────────────────
 set_gsettings_if_key_exists() {
@@ -156,7 +198,7 @@ require_cmd curl
 # ══════════════════════════════════════════════════════════════════════
 log ""
 log "═══════════════════════════════════════════════════════"
-log "  Phase 1: Bootstrap"
+log "  Bootstrap"
 log "═══════════════════════════════════════════════════════"
 
 log "Refreshing package index"
@@ -204,11 +246,11 @@ done
 install_jetbrains_mono_nerd_font || warn "Font installation failed"
 
 # ══════════════════════════════════════════════════════════════════════
-# Phase 2: Toolchains (rustup + nvm)
+# Toolchains (rustup + nvm)
 # ══════════════════════════════════════════════════════════════════════
 log ""
 log "═══════════════════════════════════════════════════════"
-log "  Phase 2: Toolchains"
+log "  Toolchains"
 log "═══════════════════════════════════════════════════════"
 
 bash "$SCRIPT_DIR/installers/rustup.sh" || warn "Rustup installation failed"
@@ -226,7 +268,7 @@ export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 [[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
 
 # ══════════════════════════════════════════════════════════════════════
-# Phase 3: Tools (level-based: prebuilt or build)
+# Tools (level-based: prebuilt or build)
 # ══════════════════════════════════════════════════════════════════════
 if [[ "$SKIP_TOOLS" == "false" ]]; then
   log ""
@@ -237,7 +279,7 @@ else
 fi
 
 # ══════════════════════════════════════════════════════════════════════
-# Phase 4: Installers
+# Installers
 # ══════════════════════════════════════════════════════════════════════
 if [[ "$SKIP_INSTALLERS" == "false" ]]; then
   log ""
@@ -248,11 +290,11 @@ else
 fi
 
 # ══════════════════════════════════════════════════════════════════════
-# Phase 5: Configs & Auth
+# Configs & Auth
 # ══════════════════════════════════════════════════════════════════════
 log ""
 log "═══════════════════════════════════════════════════════"
-log "  Phase 5: Configs & Auth"
+log "  Configs & Auth"
 log "═══════════════════════════════════════════════════════"
 
 if [[ "$SKIP_CONFIGS" == "false" ]]; then
@@ -284,11 +326,11 @@ log "  • Run: gh auth login            (authenticate GitHub CLI)"
 log "  • Add SSH key to GitHub:  cat ~/.ssh/id_ed25519.pub"
 
 # ══════════════════════════════════════════════════════════════════════
-# Phase 6: Cleanup
+# Cleanup
 # ══════════════════════════════════════════════════════════════════════
 log ""
 log "═══════════════════════════════════════════════════════"
-log "  Phase 6: Cleanup"
+log "  Cleanup"
 log "═══════════════════════════════════════════════════════"
 
 sudo apt-get autoclean -y
@@ -299,6 +341,6 @@ fi
 
 log ""
 log "═══════════════════════════════════════════════════════"
-log "  Setup complete! (Level $LEVEL — ${LEVEL_NAMES[$LEVEL]})"
+log "  Setup complete! Phase $PHASE, Level $LEVEL — ${LEVEL_NAMES[$LEVEL]}"
 log "═══════════════════════════════════════════════════════"
 log "You may need to log out/in for all changes to take effect."

@@ -2,39 +2,59 @@
 
 Automated setup scripts for Ubuntu-based Linux workstations (Pop!_OS, Ubuntu, Linux Mint, etc.).
 
-Choose a **build level** to control how much gets compiled from source vs. installed pre-built. Every script supports three modes: `prebuilt`, `clone`, and `build`. Each script is idempotent and can run individually or as part of the full orchestrated setup.
+Choose a **phase** and **level** to control how much gets compiled from source vs. installed pre-built. Like a game — progress from Level 0 (everything pre-built) to Phase 10 Level 10 (custom OS on RISC-V bare metal).
 
 ## Quick start
 
 ```bash
 git clone https://github.com/patrickpassosb/workstation.git
 cd workstation
-./setup.sh              # interactive level prompt
-./setup.sh --level 0    # all pre-built, no compilation
-./setup.sh --level 3    # compile everything from source
+./setup.sh                              # interactive: asks phase + level
+./setup.sh --phase 1 --level 0          # all pre-built, fastest install
+./setup.sh --phase 1 --level 2          # compile 10 Go/Node.js CLIs, rest pre-built
+./setup.sh --phase 1 --level 10         # compile all Phase 1 tools from source
 ```
 
-## Build levels
+## Phase 1: CLI Tools & Small Apps (implemented)
 
-| Level | Name | What gets compiled | Estimated time |
-|-------|------|--------------------|----------------|
-| **0** | No-compile | Nothing — all pre-built (apt, flatpak, npm, GitHub releases) | ~15 min |
-| **1** | Beginner | 6 small Rust/Go CLIs: ripgrep, fd, fzf, lazygit, lazydocker, opencode | ~30 min |
-| **2** | Intermediate | 18 tools (Level 1 + zsh, git, tmux, htop, jq, flameshot, starship, uv, gh, tailscale, docker, easyeffects) | ~1-2 hours |
-| **3** | Hard mode | All 30 tools including Node.js, OBS, GIMP, Audacity, Telegram, Bitwarden | ~3-5 hours |
+*Any laptop. No special hardware needed.*
 
-### Flags
+| Level | Name | What gets compiled | Cumulative |
+|-------|------|--------------------|------------|
+| **0** | Pre-built | Nothing — all apt/npm/flatpak/GitHub releases | 0 tools |
+| **1** | First steps | 6 Node.js CLIs (codex, claude-code, gemini-cli, kilo-cli, vercel-cli, context-hub) | 6 tools |
+| **2** | Go basics | + 4 Go CLIs (fzf, lazygit, lazydocker, opencode) | 10 tools |
+| **3** | Rust basics | + 2 Rust CLIs (ripgrep, fd) — ~1 min each | 12 tools |
+| **4** | Rust medium | + 2 heavier Rust (starship, uv) — 5-10 min each | 14 tools |
+| **5** | Official repos | + 3 Go projects (gh, tailscale, docker CLI) | 17 tools |
+| **6** | CMake & Meson | + 2 CMake/Meson apps (flameshot, easyeffects) | 19 tools |
+| **7** | Autotools intro | + 2 autotools builds (htop, jq) | 21 tools |
+| **8** | Core system | + 2 system tools (tmux, zsh) | 23 tools |
+| **9** | Core infra | + git from source | 24 tools |
+| **10** | Full source | + Node.js from source — compile everything | 25 tools |
 
-```bash
-./setup.sh --level 1               # compile only small CLIs
-./setup.sh --level 0 --skip-tools  # skip tool installation entirely
-./setup.sh --skip-installers       # skip proprietary installers
-./setup.sh --skip-configs          # skip dotfile restoration
-```
+The remaining 6 tools (OBS, GIMP, Audacity, Telegram, Bitwarden) are always pre-built in Phase 1 — they become compilable in Phase 2.
+
+## Phases 2-10 (roadmap)
+
+See [docs/roadmap.md](docs/roadmap.md) for the full vision:
+
+| Phase | Layer | Hardware |
+|-------|-------|----------|
+| **1** | CLI Tools & Small Apps | Any laptop |
+| **2** | Desktop Apps (OBS, GIMP, Brave) | 8GB+ RAM |
+| **3** | Runtimes (Python, Ruby, Node.js) | Any laptop |
+| **4** | Build Systems (CMake, Meson, Make) | Any laptop |
+| **5** | Compilers (GCC, LLVM, Rust bootstrap) | 16GB+ RAM |
+| **6** | Core System (coreutils, glibc, systemd) | VM required |
+| **7** | OS Internals (kernel, bootloader, LFS) | VM required |
+| **8** | Networking & Drivers (kernel modules) | VM required |
+| **9** | Cross-Compilation (ARM64, RISC-V) | QEMU or dev board |
+| **10** | Bare Metal (RISC-V assembly, custom OS) | QEMU or RISC-V board |
 
 ## Run individual scripts
 
-Every script is standalone and accepts a mode argument:
+Every tool script accepts a mode argument:
 
 ```bash
 ./tools/ripgrep.sh              # defaults to "build" (clone + compile)
@@ -43,20 +63,29 @@ Every script is standalone and accepts a mode argument:
 ./tools/ripgrep.sh build        # clone + compile + install
 
 ./installers/brave.sh           # install Brave browser
-./configs/restore-configs.sh    # restore dotfiles (backs up existing ones first)
+./configs/restore-configs.sh    # restore dotfiles
 ```
 
-## Execution phases
+## Flags
 
-| Phase | What it does |
-|-------|-------------|
-| **0 - Preflight** | Checks internet connectivity |
-| **1 - Bootstrap** | `apt update`, installs base tools (`build-essential`, `curl`, `flatpak`, etc.), creates productivity folders, installs JetBrains Mono Nerd Font |
-| **2 - Toolchains** | Installs Rust toolchain (rustup) and Node.js version manager (nvm) |
-| **3 - Tools** | Installs 30 tools using the selected level (prebuilt or build per tool) |
-| **4 - Installers** | Installs proprietary/packaged apps (Brave, Chrome, Cursor, Warp, Discord, etc.) |
-| **5 - Configs** | Restores shell configs, configures Flameshot as Print Screen, SSH key generation |
-| **6 - Cleanup** | `apt autoclean`, `flatpak update`, prints summary |
+```bash
+./setup.sh --phase 1 --level 5    # Phase 1, intermediate
+./setup.sh --skip-tools            # skip tool installation entirely
+./setup.sh --skip-installers       # skip proprietary app installers
+./setup.sh --skip-configs          # skip dotfile restoration
+```
+
+## Setup phases (what happens when you run setup.sh)
+
+| Step | What it does |
+|------|-------------|
+| **Preflight** | Checks internet connectivity |
+| **Bootstrap** | `apt update`, installs base tools, Flathub, JetBrains Mono Nerd Font |
+| **Toolchains** | Installs Rust (rustup) and Node.js version manager (nvm) |
+| **Tools** | Installs 30+ tools using the selected level (prebuilt or build per tool) |
+| **Installers** | Installs proprietary apps (Brave, Chrome, Cursor, Warp, Discord, etc.) |
+| **Configs** | Restores shell configs, Flameshot shortcut, SSH key generation |
+| **Cleanup** | `apt autoclean`, `flatpak update` |
 
 ## Pre-built install methods (Level 0)
 
@@ -74,86 +103,80 @@ Every script is standalone and accepts a mode argument:
 
 ```
 workstation/
-├── setup.sh                  # main orchestrator (--level 0|1|2|3)
+├── setup.sh                  # main orchestrator (--phase N --level N)
+├── docs/
+│   └── roadmap.md            # Phases 2-10 vision & roadmap
 ├── lib/
-│   ├── helpers.sh            # shared functions (log, clone_or_pull, github_release_install, etc.)
-│   └── registry.sh           # tool → build-level mappings + get_tool_mode()
-├── configs/
-│   ├── zshrc                 # sanitized .zshrc (secrets stripped)
-│   ├── bashrc                # sanitized .bashrc (secrets stripped)
-│   ├── gitconfig             # git config (uses gh auth, no tokens)
-│   └── restore-configs.sh    # backs up existing configs, copies these, prompts for secrets
+│   ├── helpers.sh            # shared functions
+│   └── registry.sh           # tool → build-level mappings
 ├── tools/                    # 30 tools, each with prebuilt/clone/build modes
 │   ├── install-all.sh        # orchestrator — accepts level, uses registry
-│   ├── ripgrep.sh            # Rust, cargo        (Level 1)
-│   ├── fd.sh                 # Rust, cargo        (Level 1)
-│   ├── fzf.sh                # Go                 (Level 1)
-│   ├── lazygit.sh            # Go                 (Level 1)
-│   ├── lazydocker.sh         # Go                 (Level 1)
-│   ├── opencode.sh           # Go                 (Level 1)
-│   ├── zsh.sh                # C, autotools       (Level 2)
-│   ├── git.sh                # C, make            (Level 2)
-│   ├── tmux.sh               # C, autotools       (Level 2)
-│   ├── htop.sh               # C, autotools       (Level 2)
-│   ├── jq.sh                 # C, autotools       (Level 2)
-│   ├── flameshot.sh          # C++, cmake/Qt5     (Level 2)
-│   ├── starship.sh           # Rust, cargo        (Level 2)
-│   ├── uv.sh                 # Rust, cargo        (Level 2)
-│   ├── gh.sh                 # Go (GitHub CLI)    (Level 2)
-│   ├── tailscale.sh          # Go                 (Level 2)
-│   ├── docker.sh             # Go (CLI only)      (Level 2)
-│   ├── easyeffects.sh        # C++, meson/gtk4    (Level 2)
-│   ├── nodejs.sh             # C++, configure     (Level 3)
-│   ├── obs.sh                # C++, cmake         (Level 3)
-│   ├── telegram.sh           # C++, cmake         (Level 3)
-│   ├── audacity.sh           # C++, cmake         (Level 3)
-│   ├── gimp.sh               # C, meson           (Level 3)
-│   ├── bitwarden.sh          # TypeScript/Electron(Level 3)
-│   ├── codex.sh              # TypeScript, npm    (Level 3)
-│   ├── gemini-cli.sh         # TypeScript, npm    (Level 3)
-│   ├── kilo-cli.sh           # TypeScript, npm    (Level 3)
-│   ├── vercel-cli.sh         # TypeScript, npm    (Level 3)
-│   ├── context-hub.sh        # JavaScript, npm    (Level 3)
-│   └── claude-code.sh        # TypeScript, npm    (Level 3)
-└── installers/
-    ├── install-all.sh         # orchestrator for all installers
-    ├── rustup.sh              # curl installer
-    ├── nvm.sh                 # git clone
-    ├── homebrew.sh            # official installer
-    ├── oh-my-zsh.sh           # git clone (requires zsh)
-    ├── brave.sh               # apt repo
-    ├── chrome.sh              # apt repo
-    ├── discord.sh             # flatpak
-    ├── zoom.sh                # .deb download
-    ├── cursor.sh              # AppImage
-    ├── warp.sh                # apt repo
-    ├── voquill.sh             # AppImage from GitHub releases
-    ├── insync.sh              # apt repo
-    ├── stayfree.sh            # browser extension (manual)
-    └── antigravity.sh         # .deb download
+│   ├── ripgrep.sh            # Level 3  — Rust, cargo
+│   ├── fd.sh                 # Level 3  — Rust, cargo
+│   ├── fzf.sh                # Level 2  — Go
+│   ├── lazygit.sh            # Level 2  — Go
+│   ├── lazydocker.sh         # Level 2  — Go
+│   ├── opencode.sh           # Level 2  — Go
+│   ├── zsh.sh                # Level 8  — C, autotools
+│   ├── git.sh                # Level 9  — C, make
+│   ├── tmux.sh               # Level 8  — C, autotools
+│   ├── htop.sh               # Level 7  — C, autotools
+│   ├── jq.sh                 # Level 7  — C, autotools
+│   ├── flameshot.sh          # Level 6  — C++, cmake/Qt5
+│   ├── starship.sh           # Level 4  — Rust, cargo
+│   ├── uv.sh                 # Level 4  — Rust, cargo
+│   ├── gh.sh                 # Level 5  — Go
+│   ├── tailscale.sh          # Level 5  — Go
+│   ├── docker.sh             # Level 5  — Go (CLI only)
+│   ├── easyeffects.sh        # Level 6  — C++, meson/gtk4
+│   ├── nodejs.sh             # Level 10 — C++, configure
+│   ├── obs.sh                # Phase 2  — C++, cmake
+│   ├── telegram.sh           # Phase 2  — C++, cmake
+│   ├── audacity.sh           # Phase 2  — C++, cmake
+│   ├── gimp.sh               # Phase 2  — C, meson
+│   ├── bitwarden.sh          # Phase 2  — TypeScript/Electron
+│   ├── codex.sh              # Level 1  — TypeScript, npm
+│   ├── gemini-cli.sh         # Level 1  — TypeScript, npm
+│   ├── kilo-cli.sh           # Level 1  — TypeScript, npm
+│   ├── vercel-cli.sh         # Level 1  — TypeScript, npm
+│   ├── context-hub.sh        # Level 1  — JavaScript, npm
+│   └── claude-code.sh        # Level 1  — TypeScript, npm
+├── installers/               # proprietary apps (always pre-built)
+│   ├── install-all.sh
+│   ├── rustup.sh
+│   ├── nvm.sh
+│   ├── homebrew.sh
+│   ├── oh-my-zsh.sh
+│   ├── brave.sh
+│   ├── chrome.sh
+│   ├── discord.sh
+│   ├── zoom.sh
+│   ├── cursor.sh
+│   ├── warp.sh
+│   ├── voquill.sh
+│   ├── insync.sh
+│   ├── stayfree.sh
+│   └── antigravity.sh
+└── configs/
+    ├── zshrc
+    ├── bashrc
+    ├── gitconfig
+    └── restore-configs.sh
 ```
 
 ## Configuration
-
-Environment variables you can set before running:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SRC_DIR` | `~/src` | Where source repos are cloned |
 | `INSTALL_PREFIX` | `/usr/local` | Where from-source builds install |
-| `ANTIGRAVITY_DEB_URL` | *(empty)* | Direct .deb URL for Antigravity (requires manual download) |
+| `ANTIGRAVITY_DEB_URL` | *(empty)* | Direct .deb URL for Antigravity |
 
 ## Security
 
-- **No secrets in this repo.** The `GITHUB_MCP_PAT` token is stripped from config files and replaced with a placeholder.
+- **No secrets in this repo.** Config files have tokens stripped and replaced with placeholders.
 - `restore-configs.sh` prompts you to enter secrets at setup time.
 - `.gitignore` blocks `*.env`, `*.secret`, and `.env*` patterns.
-
-To verify no secrets slipped in:
-
-```bash
-grep -r "github_pat_" .
-```
 
 ## Prerequisites
 
@@ -161,11 +184,7 @@ grep -r "github_pat_" .
 - Internet connection
 - `sudo` access
 
-Everything else is installed by the scripts themselves.
-
 ## After setup
-
-A few things need manual attention after the scripts finish:
 
 ```bash
 sudo tailscale up          # join your Tailnet
