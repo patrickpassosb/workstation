@@ -11,23 +11,18 @@ fi
 
 log "Installing Antigravity IDE..."
 
-# Try APT first
-if apt_install_if_missing antigravity; then
-  log "Antigravity IDE installed via APT."
-  exit 0
-fi
+# Add Antigravity apt repo
+GPG_KEY="/etc/apt/keyrings/antigravity-repo-key.gpg"
+REPO_LIST="/etc/apt/sources.list.d/antigravity.list"
 
-# Fallback: check for a .deb URL in the environment
-if [[ -n "${ANTIGRAVITY_DEB_URL:-}" ]]; then
-  log "Downloading Antigravity .deb from $ANTIGRAVITY_DEB_URL"
-  curl -fL "$ANTIGRAVITY_DEB_URL" -o /tmp/antigravity.deb
-  sudo apt-get install -y /tmp/antigravity.deb
-  rm -f /tmp/antigravity.deb
-  log "Antigravity IDE installed from .deb."
-  exit 0
-fi
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://us-central1-apt.pkg.dev/doc/repo-signing-key.gpg \
+  | sudo gpg --dearmor --yes -o "$GPG_KEY"
 
-# Neither method available
-warn "Antigravity IDE is not available in APT and ANTIGRAVITY_DEB_URL is not set."
-warn "Please download it manually from: https://www.antigravityide.app/download"
-exit 1
+echo "deb [signed-by=${GPG_KEY}] https://us-central1-apt.pkg.dev/projects/antigravity-auto-updater-dev/ antigravity-debian main" \
+  | sudo tee "$REPO_LIST" > /dev/null
+
+sudo apt-get update -y
+sudo apt-get install -y antigravity
+
+log "Antigravity IDE installed"
