@@ -113,14 +113,9 @@ set_gsettings_if_key_exists() {
 }
 
 configure_flameshot_shortcut() {
-  if ! command -v gsettings >/dev/null 2>&1; then
-    warn "gsettings not found. Skipping shortcut setup."
-    return 1
-  fi
-
   local flameshot_cmd
   if is_installed flameshot; then
-    flameshot_cmd="$(command -v flameshot) gui"
+    flameshot_cmd="flameshot gui"
   elif command -v flatpak >/dev/null 2>&1 && flatpak info org.flameshot.Flameshot >/dev/null 2>&1; then
     flameshot_cmd="flatpak run org.flameshot.Flameshot gui"
   else
@@ -128,35 +123,44 @@ configure_flameshot_shortcut() {
     return 1
   fi
 
-  local media_schema="org.gnome.settings-daemon.plugins.media-keys"
-  local kb_path="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/"
-  local kb_schema="org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:${kb_path}"
+  local shortcut_set=false
 
-  local current
-  current="$(gsettings get "$media_schema" custom-keybindings 2>/dev/null || echo '[]')"
-  current="${current#@as }"
-
-  local updated
-  if [[ "$current" == "[]" ]]; then
-    updated="['${kb_path}']"
-  elif [[ "$current" == *"${kb_path}"* ]]; then
-    updated="$current"
-  else
-    updated="${current%]}, '${kb_path}']"
+  # Cinnamon (Linux Mint)
+  if dconf list /org/cinnamon/desktop/keybindings/ >/dev/null 2>&1; then
+    dconf write /org/cinnamon/desktop/keybindings/custom-list "['custom0']"
+    dconf write /org/cinnamon/desktop/keybindings/custom-keybindings/custom0/name "'Flameshot'"
+    dconf write /org/cinnamon/desktop/keybindings/custom-keybindings/custom0/command "'$flameshot_cmd'"
+    dconf write /org/cinnamon/desktop/keybindings/custom-keybindings/custom0/binding "['Print']"
+    # Disable default screenshot on Print Screen
+    dconf write /org/cinnamon/desktop/keybindings/media-keys/screenshot "@as []"
+    log "Configured Print Screen → Flameshot (Cinnamon)"
+    shortcut_set=true
   fi
 
-  gsettings set "$media_schema" custom-keybindings "$updated"
-  gsettings set "$kb_schema" name "'Flameshot'"
-  gsettings set "$kb_schema" command "'$flameshot_cmd'"
-  gsettings set "$kb_schema" binding "'Print'"
+  # GNOME / Pop!_OS
+  if command -v gsettings >/dev/null 2>&1 && gsettings list-keys org.gnome.settings-daemon.plugins.media-keys >/dev/null 2>&1; then
+    local media_schema="org.gnome.settings-daemon.plugins.media-keys"
+    local kb_path="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/"
+    local kb_schema="org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:${kb_path}"
 
-  set_gsettings_if_key_exists "$media_schema" screenshot "[]"
-  set_gsettings_if_key_exists "$media_schema" screenshot-window "[]"
-  set_gsettings_if_key_exists "$media_schema" screenshot-area "[]"
-  set_gsettings_if_key_exists org.gnome.shell.keybindings show-screenshot-ui "[]"
-  set_gsettings_if_key_exists org.gnome.shell.keybindings show-screen-recording-ui "[]"
+    gsettings set "$media_schema" custom-keybindings "['${kb_path}']"
+    gsettings set "$kb_schema" name "'Flameshot'"
+    gsettings set "$kb_schema" command "'$flameshot_cmd'"
+    gsettings set "$kb_schema" binding "'Print'"
 
-  log "Configured Print Screen → Flameshot"
+    set_gsettings_if_key_exists "$media_schema" screenshot "[]"
+    set_gsettings_if_key_exists "$media_schema" screenshot-window "[]"
+    set_gsettings_if_key_exists "$media_schema" screenshot-area "[]"
+    set_gsettings_if_key_exists org.gnome.shell.keybindings show-screenshot-ui "[]"
+    set_gsettings_if_key_exists org.gnome.shell.keybindings show-screen-recording-ui "[]"
+
+    log "Configured Print Screen → Flameshot (GNOME)"
+    shortcut_set=true
+  fi
+
+  if [[ "$shortcut_set" == "false" ]]; then
+    warn "Could not configure Flameshot shortcut — unsupported desktop"
+  fi
 }
 
 install_jetbrains_mono_nerd_font() {
