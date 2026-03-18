@@ -158,6 +158,26 @@ configure_flameshot_shortcut() {
     shortcut_set=true
   fi
 
+  # COSMIC (Pop!_OS 24.04+)
+  local cosmic_shortcuts_dir="$HOME/.config/cosmic/com.system76.CosmicSettings.Shortcuts/v1"
+  if [[ -d "$cosmic_shortcuts_dir" ]]; then
+    local sa_file="$cosmic_shortcuts_dir/system_actions"
+    if [[ -f "$sa_file" ]] && grep -q 'Screenshot:' "$sa_file"; then
+      sed -i "s|Screenshot:.*|Screenshot: \"$flameshot_cmd\",|" "$sa_file"
+    elif [[ -f "$sa_file" ]]; then
+      # Append Screenshot entry before closing brace
+      sed -i "\$i\\    Screenshot: \"$flameshot_cmd\"," "$sa_file"
+    else
+      cat > "$sa_file" <<SEOF
+{
+    Screenshot: "$flameshot_cmd",
+}
+SEOF
+    fi
+    log "Configured Print Screen → Flameshot (COSMIC)"
+    shortcut_set=true
+  fi
+
   if [[ "$shortcut_set" == "false" ]]; then
     warn "Could not configure Flameshot shortcut — unsupported desktop"
   fi
