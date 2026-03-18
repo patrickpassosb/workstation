@@ -339,6 +339,7 @@ if [[ "$SKIP_CONFIGS" == "false" ]]; then
   bash "$SCRIPT_DIR/configs/ide-extensions.sh" || warn "IDE extensions failed"
   bash "$SCRIPT_DIR/configs/browser-extensions.sh" || warn "Browser extensions failed"
   bash "$SCRIPT_DIR/configs/defaults.sh" || warn "Default apps/wallpaper failed"
+  bash "$SCRIPT_DIR/configs/dns-nextdns.sh" || warn "DNS/NextDNS setup failed"
 else
   log "Skipping config restore (--skip-configs)"
 fi
