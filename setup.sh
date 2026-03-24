@@ -249,7 +249,8 @@ if is_installed flatpak; then
 fi
 
 # Create productivity folders
-for dir in "$HOME/TEMP" "$HOME/AppImage" "$HOME/Vídeos/OBS Rec"; do
+VIDEOS_DIR="$(xdg-user-dir VIDEOS 2>/dev/null || echo "$HOME/Videos")"
+for dir in "$HOME/TEMP" "$HOME/AppImage" "$VIDEOS_DIR/OBS Rec"; do
   mkdir -p "$dir"
 done
 
@@ -257,13 +258,13 @@ done
 for dir in "$HOME/GitHub" "$HOME/GitHub/forks" "$HOME/GitHub/learning" "$HOME/GitHub/work"; do
   mkdir -p "$dir"
 done
-log "Folders created (TEMP, AppImage, OBS Rec, GitHub/{forks,learning,work})"
+log "Folders created (TEMP, AppImage, $VIDEOS_DIR/OBS Rec, GitHub/{forks,learning,work})"
 
 # Add Nautilus bookmarks
 BOOKMARKS_FILE="$HOME/.config/gtk-3.0/bookmarks"
 mkdir -p "$(dirname "$BOOKMARKS_FILE")"
 touch "$BOOKMARKS_FILE"
-for dir in "$HOME/TEMP" "$HOME/AppImage" "$HOME/Vídeos/OBS Rec"; do
+for dir in "$HOME/TEMP" "$HOME/AppImage" "$VIDEOS_DIR/OBS Rec"; do
   encoded="file://$(echo "$dir" | sed 's/ /%20/g')"
   if ! grep -qF "$encoded" "$BOOKMARKS_FILE" 2>/dev/null; then
     echo "$encoded" >> "$BOOKMARKS_FILE"

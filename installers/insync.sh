@@ -14,15 +14,17 @@ log "Installing InSync..."
 # Determine the Ubuntu codename for the repo
 CODENAME="$(lsb_release -cs 2>/dev/null || echo "jammy")"
 
-# Add GPG key (ASCII-armored, needs dearmoring)
-sudo install -d -m 0755 /etc/apt/keyrings
-curl -fsSL "https://d2t3ff60b2tber.cloudfront.net/services@insynchq.com.gpg.key" \
-  | sudo gpg --dearmor -o /etc/apt/keyrings/insync-archive-keyring.gpg
+# Add GPG key
+curl -fsSL "https://apt.insync.io/insynchq.gpg" \
+  | gpg --dearmor \
+  | sudo tee /etc/apt/trusted.gpg.d/insynchq.gpg >/dev/null
 
-echo "deb [signed-by=/etc/apt/keyrings/insync-archive-keyring.gpg] http://apt.insync.io/ubuntu ${CODENAME} non-free contrib" \
+echo "deb [signed-by=/etc/apt/trusted.gpg.d/insynchq.gpg] http://apt.insync.io/ubuntu ${CODENAME} non-free contrib" \
   | sudo tee /etc/apt/sources.list.d/insync.list >/dev/null
 
 sudo apt-get update -y
 sudo apt-get install -y insync
 
-log "InSync installed."
+insync start
+
+log "InSync installed and started."
