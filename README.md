@@ -25,15 +25,15 @@ cd workstation
 | **1** | First steps | 6 Node.js CLIs (codex, claude-code, gemini-cli, kilo-cli, vercel-cli, context-hub) | 6 tools |
 | **2** | Go basics | + 4 Go CLIs (fzf, lazygit, lazydocker, opencode) | 10 tools |
 | **3** | Rust basics | + 2 Rust CLIs (ripgrep, fd) — ~1 min each | 12 tools |
-| **4** | Rust medium | + 2 heavier Rust (starship, uv) — 5-10 min each | 14 tools |
-| **5** | Official repos | + 3 Go projects (gh, tailscale, docker CLI) | 17 tools |
-| **6** | CMake & Meson | + 2 CMake/Meson apps (flameshot, easyeffects) | 19 tools |
-| **7** | Autotools intro | + 2 autotools builds (htop, jq) | 21 tools |
-| **8** | Core system | + 2 system tools (tmux, zsh) | 23 tools |
-| **9** | Core infra | + git from source | 24 tools |
-| **10** | Full source | + Node.js from source — compile everything | 25 tools |
+| **4** | Rust/Zig medium | + 3 heavier builds (starship, uv, bun) — 5-10 min each | 15 tools |
+| **5** | Official repos | + 3 Go projects (gh, tailscale, docker CLI) | 18 tools |
+| **6** | CMake & Meson | + 2 CMake/Meson apps (flameshot, easyeffects) | 20 tools |
+| **7** | Autotools intro | + 2 autotools builds (htop, jq) | 22 tools |
+| **8** | Core system | + 2 system tools (tmux, zsh) | 24 tools |
+| **9** | Core infra | + git from source | 25 tools |
+| **10** | Full source | + Node.js from source — compile everything | 26 tools |
 
-The remaining 6 tools (OBS, GIMP, Audacity, Telegram, Bitwarden) are always pre-built in Phase 1 — they become compilable in Phase 2.
+The remaining 5 tools (OBS, GIMP, Audacity, Telegram, Bitwarden) are always pre-built in Phase 1 — they become compilable in Phase 2.
 
 ## Phases 2-10 (roadmap)
 
@@ -84,7 +84,7 @@ Every tool script accepts a mode argument:
 | **Toolchains** | Installs Rust (rustup) and Node.js version manager (nvm) |
 | **Tools** | Installs 30+ tools using the selected level (prebuilt or build per tool) |
 | **Installers** | Installs proprietary apps (Brave, Chrome, Cursor, Warp, Discord, etc.) |
-| **Configs** | Restores shell configs, Flameshot shortcut, SSH key generation |
+| **Configs** | Restores shell configs, Flameshot shortcut, UFW firewall, SSH key generation |
 | **Cleanup** | `apt autoclean`, `flatpak update` |
 
 ## Pre-built install methods (Level 0)
@@ -94,7 +94,7 @@ Every tool script accepts a mode argument:
 | apt packages | zsh, git, tmux, htop, jq, ripgrep, fd-find, fzf | `apt install` |
 | Flatpak | flameshot, OBS, GIMP, Audacity, Telegram, Bitwarden, EasyEffects | `flatpak install` |
 | GitHub releases | lazygit, lazydocker, opencode | Binary download |
-| Official installers | tailscale, starship, uv | `curl \| sh` |
+| Official installers | tailscale, starship, uv, bun | `curl \| sh` |
 | Official apt repos | gh, docker | APT repository + `apt install` |
 | npm global | codex, gemini-cli, kilo-cli, vercel-cli, context-hub, claude-code | `npm install -g` |
 | nvm | Node.js | `nvm install --lts` |
@@ -109,7 +109,7 @@ workstation/
 ├── lib/
 │   ├── helpers.sh            # shared functions
 │   └── registry.sh           # tool → build-level mappings
-├── tools/                    # 30 tools, each with prebuilt/clone/build modes
+├── tools/                    # 31 tools, each with prebuilt/clone/build modes
 │   ├── install-all.sh        # orchestrator — accepts level, uses registry
 │   ├── ripgrep.sh            # Level 3  — Rust, cargo
 │   ├── fd.sh                 # Level 3  — Rust, cargo
@@ -125,6 +125,7 @@ workstation/
 │   ├── flameshot.sh          # Level 6  — C++, cmake/Qt5
 │   ├── starship.sh           # Level 4  — Rust, cargo
 │   ├── uv.sh                 # Level 4  — Rust, cargo
+│   ├── bun.sh                # Level 4  — Zig/C++, cmake
 │   ├── gh.sh                 # Level 5  — Go
 │   ├── tailscale.sh          # Level 5  — Go
 │   ├── docker.sh             # Level 5  — Go (CLI only)
@@ -154,13 +155,13 @@ workstation/
 │   ├── cursor.sh
 │   ├── warp.sh
 │   ├── voquill.sh
-│   ├── insync.sh
 │   ├── stayfree.sh
 │   └── antigravity.sh
 └── configs/
     ├── zshrc
     ├── bashrc
     ├── gitconfig
+    ├── firewall.sh
     └── restore-configs.sh
 ```
 

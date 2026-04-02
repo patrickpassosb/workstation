@@ -35,7 +35,6 @@ INSTALLER_SCRIPTS=(
   zoom
   discord
   voquill
-  insync
   antigravity
   stayfree
 )

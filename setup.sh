@@ -341,6 +341,7 @@ if [[ "$SKIP_CONFIGS" == "false" ]]; then
   bash "$SCRIPT_DIR/configs/browser-extensions.sh" || warn "Browser extensions failed"
   bash "$SCRIPT_DIR/configs/defaults.sh" || warn "Default apps/wallpaper failed"
   bash "$SCRIPT_DIR/configs/sync-skills.sh" || warn "Skills sync failed"
+  bash "$SCRIPT_DIR/configs/firewall.sh" || warn "Firewall setup failed"
   bash "$SCRIPT_DIR/configs/dns-nextdns.sh" || warn "DNS/NextDNS setup failed"
 else
   log "Skipping config restore (--skip-configs)"

@@ -12,8 +12,8 @@ declare -A TOOL_BUILD_LEVEL=(
   [fzf]=2 [lazygit]=2 [lazydocker]=2 [opencode]=2
   # Level 3 — small Rust CLIs (fast cargo build, ~1 min each)
   [ripgrep]=3 [fd]=3
-  # Level 4 — heavier Rust builds (5-10 min, more CPU)
-  [starship]=4 [uv]=4
+  # Level 4 — heavier builds (5-10 min, more CPU; Rust/Zig)
+  [starship]=4 [uv]=4 [bun]=4
   # Level 5 — Go projects with complex build systems (make, multiple binaries)
   [gh]=5 [tailscale]=5 [docker]=5
   # Level 6 — CMake/Meson with Qt/GTK dependencies

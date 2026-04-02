@@ -204,6 +204,22 @@ sudo install -m 0755 target/release/uv $INSTALL_PREFIX/bin/uv
 
 EOF
       ;;
+    bun)
+      cat >> "$BUILD_INSTRUCTIONS" <<EOF
+## bun
+\`\`\`bash
+# Install build dependencies first:
+sudo apt install build-essential cmake ninja-build python3 pkg-config
+# Install Zig: https://ziglang.org/download/
+
+cd $SRC_DIR/bun
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+ninja -C build
+sudo install -m 0755 build/bun $INSTALL_PREFIX/bin/bun
+\`\`\`
+
+EOF
+      ;;
     # ── Level 5: Go with make ──
     gh)
       cat >> "$BUILD_INSTRUCTIONS" <<EOF
@@ -414,7 +430,7 @@ for name in zsh git tmux htop jq; do
 done
 
 # ── Developer utilities ──────────────────────────────────────────────
-for name in flameshot uv ripgrep fd starship fzf gh docker lazygit lazydocker opencode tailscale easyeffects; do
+for name in flameshot uv bun ripgrep fd starship fzf gh docker lazygit lazydocker opencode tailscale easyeffects; do
   run_tool "$name"
 done
 
