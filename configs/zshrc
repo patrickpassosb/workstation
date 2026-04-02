@@ -121,3 +121,16 @@ fi
 
 # Starship prompt
 command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
+
+# Modern CLI replacements (installed by workstation setup)
+# bat → cat with syntax highlighting
+command -v bat >/dev/null 2>&1 && alias cat='bat --paging=never'
+# eza → ls with icons and git status
+if command -v eza >/dev/null 2>&1; then
+  alias ls='eza --icons --group-directories-first'
+  alias ll='eza --icons --group-directories-first -la'
+  alias la='eza --icons --group-directories-first -a'
+  alias lt='eza --icons --group-directories-first --tree --level=2'
+fi
+# zoxide → smarter cd (use 'z' to jump to frequent dirs)
+command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"

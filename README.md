@@ -24,14 +24,14 @@ cd workstation
 | **0** | Pre-built | Nothing — all apt/npm/flatpak/GitHub releases | 0 tools |
 | **1** | First steps | 6 Node.js CLIs (codex, claude-code, gemini-cli, kilo-cli, vercel-cli, context-hub) | 6 tools |
 | **2** | Go basics | + 4 Go CLIs (fzf, lazygit, lazydocker, opencode) | 10 tools |
-| **3** | Rust basics | + 2 Rust CLIs (ripgrep, fd) — ~1 min each | 12 tools |
-| **4** | Rust/Zig medium | + 3 heavier builds (starship, uv, bun) — 5-10 min each | 15 tools |
-| **5** | Official repos | + 3 Go projects (gh, tailscale, docker CLI) | 18 tools |
-| **6** | CMake & Meson | + 2 CMake/Meson apps (flameshot, easyeffects) | 20 tools |
-| **7** | Autotools intro | + 2 autotools builds (htop, jq) | 22 tools |
-| **8** | Core system | + 2 system tools (tmux, zsh) | 24 tools |
-| **9** | Core infra | + git from source | 25 tools |
-| **10** | Full source | + Node.js from source — compile everything | 26 tools |
+| **3** | Rust basics | + 6 Rust CLIs (ripgrep, fd, bat, eza, delta, zoxide) — ~1 min each | 16 tools |
+| **4** | Rust/Zig medium | + 3 heavier builds (starship, uv, bun) — 5-10 min each | 19 tools |
+| **5** | Official repos | + 3 Go projects (gh, tailscale, docker CLI) | 22 tools |
+| **6** | CMake & Meson | + 2 CMake/Meson apps (flameshot, easyeffects) | 24 tools |
+| **7** | Autotools intro | + 2 autotools builds (htop, jq) | 26 tools |
+| **8** | Core system | + 2 system tools (tmux, zsh) | 28 tools |
+| **9** | Core infra | + git from source | 29 tools |
+| **10** | Full source | + Node.js from source — compile everything | 30 tools |
 
 The remaining 5 tools (OBS, GIMP, Audacity, Telegram, Bitwarden) are always pre-built in Phase 1 — they become compilable in Phase 2.
 
@@ -84,16 +84,16 @@ Every tool script accepts a mode argument:
 | **Toolchains** | Installs Rust (rustup) and Node.js version manager (nvm) |
 | **Tools** | Installs 30+ tools using the selected level (prebuilt or build per tool) |
 | **Installers** | Installs proprietary apps (Brave, Chrome, Cursor, Warp, Discord, etc.) |
-| **Configs** | Restores shell configs, Flameshot shortcut, UFW firewall, SSH key generation |
+| **Configs** | Restores shell configs, Flameshot shortcut, UFW firewall, auto security updates, SSH key generation |
 | **Cleanup** | `apt autoclean`, `flatpak update` |
 
 ## Pre-built install methods (Level 0)
 
 | Category | Tools | Method |
 |----------|-------|--------|
-| apt packages | zsh, git, tmux, htop, jq, ripgrep, fd-find, fzf | `apt install` |
+| apt packages | zsh, git, tmux, htop, jq, ripgrep, fd-find, fzf, bat, zoxide | `apt install` |
 | Flatpak | flameshot, OBS, GIMP, Audacity, Telegram, Bitwarden, EasyEffects | `flatpak install` |
-| GitHub releases | lazygit, lazydocker, opencode | Binary download |
+| GitHub releases | lazygit, lazydocker, opencode, eza, delta | Binary download |
 | Official installers | tailscale, starship, uv, bun | `curl \| sh` |
 | Official apt repos | gh, docker | APT repository + `apt install` |
 | npm global | codex, gemini-cli, kilo-cli, vercel-cli, context-hub, claude-code | `npm install -g` |
@@ -109,10 +109,14 @@ workstation/
 ├── lib/
 │   ├── helpers.sh            # shared functions
 │   └── registry.sh           # tool → build-level mappings
-├── tools/                    # 31 tools, each with prebuilt/clone/build modes
+├── tools/                    # 35 tools, each with prebuilt/clone/build modes
 │   ├── install-all.sh        # orchestrator — accepts level, uses registry
 │   ├── ripgrep.sh            # Level 3  — Rust, cargo
 │   ├── fd.sh                 # Level 3  — Rust, cargo
+│   ├── bat.sh                # Level 3  — Rust, cargo
+│   ├── eza.sh                # Level 3  — Rust, cargo
+│   ├── delta.sh              # Level 3  — Rust, cargo
+│   ├── zoxide.sh             # Level 3  — Rust, cargo
 │   ├── fzf.sh                # Level 2  — Go
 │   ├── lazygit.sh            # Level 2  — Go
 │   ├── lazydocker.sh         # Level 2  — Go
@@ -162,6 +166,7 @@ workstation/
     ├── bashrc
     ├── gitconfig
     ├── firewall.sh
+    ├── unattended-upgrades.sh
     └── restore-configs.sh
 ```
 

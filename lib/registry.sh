@@ -11,7 +11,7 @@ declare -A TOOL_BUILD_LEVEL=(
   # Level 2 — small Go CLIs (single go build, seconds)
   [fzf]=2 [lazygit]=2 [lazydocker]=2 [opencode]=2
   # Level 3 — small Rust CLIs (fast cargo build, ~1 min each)
-  [ripgrep]=3 [fd]=3
+  [ripgrep]=3 [fd]=3 [bat]=3 [eza]=3 [delta]=3 [zoxide]=3
   # Level 4 — heavier builds (5-10 min, more CPU; Rust/Zig)
   [starship]=4 [uv]=4 [bun]=4
   # Level 5 — Go projects with complex build systems (make, multiple binaries)
@@ -48,8 +48,8 @@ LEVEL_DESCRIPTIONS=(
   [0]="install everything pre-built, no compilation"
   [1]="6 Node.js CLIs (npm build)"
   [2]="+ 4 Go CLIs (fzf, lazygit, lazydocker, opencode)"
-  [3]="+ 2 Rust CLIs (ripgrep, fd)"
-  [4]="+ 2 heavier Rust builds (starship, uv)"
+  [3]="+ 6 Rust CLIs (ripgrep, fd, bat, eza, delta, zoxide)"
+  [4]="+ 3 heavier builds (starship, uv, bun)"
   [5]="+ 3 Go projects (gh, tailscale, docker CLI)"
   [6]="+ 2 CMake/Meson apps (flameshot, easyeffects)"
   [7]="+ 2 autotools builds (htop, jq)"

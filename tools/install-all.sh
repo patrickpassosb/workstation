@@ -179,6 +179,50 @@ sudo install -m 0755 target/release/fd $INSTALL_PREFIX/bin/fd
 
 EOF
       ;;
+    bat)
+      cat >> "$BUILD_INSTRUCTIONS" <<EOF
+## bat
+\`\`\`bash
+cd $SRC_DIR/bat
+cargo build --release
+sudo install -m 0755 target/release/bat $INSTALL_PREFIX/bin/bat
+\`\`\`
+
+EOF
+      ;;
+    eza)
+      cat >> "$BUILD_INSTRUCTIONS" <<EOF
+## eza
+\`\`\`bash
+cd $SRC_DIR/eza
+cargo build --release
+sudo install -m 0755 target/release/eza $INSTALL_PREFIX/bin/eza
+\`\`\`
+
+EOF
+      ;;
+    delta)
+      cat >> "$BUILD_INSTRUCTIONS" <<EOF
+## delta
+\`\`\`bash
+cd $SRC_DIR/delta
+cargo build --release
+sudo install -m 0755 target/release/delta $INSTALL_PREFIX/bin/delta
+\`\`\`
+
+EOF
+      ;;
+    zoxide)
+      cat >> "$BUILD_INSTRUCTIONS" <<EOF
+## zoxide
+\`\`\`bash
+cd $SRC_DIR/zoxide
+cargo build --release
+sudo install -m 0755 target/release/zoxide $INSTALL_PREFIX/bin/zoxide
+\`\`\`
+
+EOF
+      ;;
     # ── Level 4: Heavy Rust ──
     starship)
       cat >> "$BUILD_INSTRUCTIONS" <<EOF
@@ -430,7 +474,7 @@ for name in zsh git tmux htop jq; do
 done
 
 # ── Developer utilities ──────────────────────────────────────────────
-for name in flameshot uv bun ripgrep fd starship fzf gh docker lazygit lazydocker opencode tailscale easyeffects; do
+for name in bat eza delta zoxide flameshot uv bun ripgrep fd starship fzf gh docker lazygit lazydocker opencode tailscale easyeffects; do
   run_tool "$name"
 done
 

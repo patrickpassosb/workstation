@@ -48,8 +48,8 @@ Levels (Phase 1):
   0   Pre-built          — install everything pre-built, no compilation
   1   First steps        — 6 Node.js CLIs (npm build)
   2   Go basics          — + 4 Go CLIs (fzf, lazygit, lazydocker, opencode)
-  3   Rust basics        — + 2 Rust CLIs (ripgrep, fd)
-  4   Rust medium        — + 2 heavier Rust builds (starship, uv)
+  3   Rust basics        — + 6 Rust CLIs (ripgrep, fd, bat, eza, delta, zoxide)
+  4   Rust medium        — + 3 heavier builds (starship, uv, bun)
   5   Official repos     — + 3 Go projects (gh, tailscale, docker CLI)
   6   CMake & Meson      — + 2 CMake/Meson apps (flameshot, easyeffects)
   7   Autotools intro    — + 2 autotools builds (htop, jq)
@@ -341,6 +341,7 @@ if [[ "$SKIP_CONFIGS" == "false" ]]; then
   bash "$SCRIPT_DIR/configs/browser-extensions.sh" || warn "Browser extensions failed"
   bash "$SCRIPT_DIR/configs/defaults.sh" || warn "Default apps/wallpaper failed"
   bash "$SCRIPT_DIR/configs/sync-skills.sh" || warn "Skills sync failed"
+  bash "$SCRIPT_DIR/configs/unattended-upgrades.sh" || warn "Unattended upgrades setup failed"
   bash "$SCRIPT_DIR/configs/firewall.sh" || warn "Firewall setup failed"
   bash "$SCRIPT_DIR/configs/dns-nextdns.sh" || warn "DNS/NextDNS setup failed"
 else
