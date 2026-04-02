@@ -234,7 +234,7 @@ for pkg in build-essential ca-certificates curl wget gnupg software-properties-c
 done
 
 # Small apt utilities
-for pkg in gnome-sushi folder-color timeshift vlc v4l2loopback-utils; do
+for pkg in gnome-sushi folder-color-common timeshift vlc v4l2loopback-utils xclip; do
   apt_install_if_missing "$pkg" || true
 done
 
@@ -340,6 +340,7 @@ if [[ "$SKIP_CONFIGS" == "false" ]]; then
   bash "$SCRIPT_DIR/configs/ide-extensions.sh" || warn "IDE extensions failed"
   bash "$SCRIPT_DIR/configs/browser-extensions.sh" || warn "Browser extensions failed"
   bash "$SCRIPT_DIR/configs/defaults.sh" || warn "Default apps/wallpaper failed"
+  bash "$SCRIPT_DIR/configs/sync-skills.sh" || warn "Skills sync failed"
   bash "$SCRIPT_DIR/configs/dns-nextdns.sh" || warn "DNS/NextDNS setup failed"
 else
   log "Skipping config restore (--skip-configs)"
@@ -428,6 +429,12 @@ fi
 
 # Configure Flameshot as Print Screen
 configure_flameshot_shortcut || warn "Flameshot shortcut setup was not fully applied"
+
+# Grant Flatpak Flameshot clipboard access (needs xclip + session-bus)
+if command -v flatpak >/dev/null 2>&1 && flatpak info org.flameshot.Flameshot >/dev/null 2>&1; then
+  flatpak override --user org.flameshot.Flameshot --socket=session-bus
+  log "Flameshot Flatpak clipboard access granted"
+fi
 
 # SSH key generation
 if [[ ! -f "$HOME/.ssh/id_ed25519" ]]; then

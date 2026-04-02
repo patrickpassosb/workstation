@@ -11,7 +11,7 @@ case "$MODE" in
   prebuilt)
     ensure_node
     log "Installing context-hub via npm..."
-    npm install -g context-hub
+    npm install -g @aisuite/chub
     ;;
   clone)
     clone_or_pull https://github.com/andrewyng/context-hub.git context-hub "$VERSION"

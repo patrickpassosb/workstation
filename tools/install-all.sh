@@ -414,7 +414,7 @@ for name in zsh git tmux htop jq; do
 done
 
 # ── Developer utilities ──────────────────────────────────────────────
-for name in flameshot uv ripgrep fd starship fzf gh lazygit lazydocker opencode tailscale docker easyeffects; do
+for name in flameshot uv ripgrep fd starship fzf gh docker lazygit lazydocker opencode tailscale easyeffects; do
   run_tool "$name"
 done
 

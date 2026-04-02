@@ -55,6 +55,13 @@ install_extensions() {
   fi
 }
 
+# IDE extensions need to install as the regular user, not root
+if [[ "$(id -u)" -eq 0 ]]; then
+  warn "IDE extensions should be installed as your regular user, not root."
+  warn "Run after setup:  bash $SCRIPT_DIR/ide-extensions.sh"
+  exit 0
+fi
+
 # ── Cursor ───────────────────────────────────────────────────────────
 if is_installed cursor; then
   log ""

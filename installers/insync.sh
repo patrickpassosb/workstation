@@ -12,11 +12,12 @@ fi
 log "Installing InSync..."
 
 # Determine the Ubuntu codename for the repo
-CODENAME="$(lsb_release -cs 2>/dev/null || echo "jammy")"
+# On Mint, lsb_release -cs returns the Mint codename (e.g. "zena"), not Ubuntu's.
+CODENAME="$(get_ubuntu_codename)"
 
 # Add GPG key
 curl -fsSL "https://apt.insync.io/insynchq.gpg" \
-  | gpg --dearmor \
+  | gpg --dearmor --yes \
   | sudo tee /etc/apt/trusted.gpg.d/insynchq.gpg >/dev/null
 
 echo "deb [signed-by=/etc/apt/trusted.gpg.d/insynchq.gpg] http://apt.insync.io/ubuntu ${CODENAME} non-free contrib" \

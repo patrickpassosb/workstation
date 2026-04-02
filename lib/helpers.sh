@@ -24,6 +24,20 @@ is_installed() {
   command -v "$1" >/dev/null 2>&1
 }
 
+# ── Distro helpers ────────────────────────────────────────────────────
+# On Linux Mint (and other Ubuntu derivatives), VERSION_CODENAME and
+# lsb_release -cs return the Mint codename (e.g. "zena"), but third-party
+# apt repos need the underlying Ubuntu codename (e.g. "noble").
+get_ubuntu_codename() {
+  if [[ -f /etc/os-release ]]; then
+    # shellcheck disable=SC1091
+    . /etc/os-release
+    echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}"
+  else
+    lsb_release -cs 2>/dev/null || echo "noble"
+  fi
+}
+
 # ── APT helpers ───────────────────────────────────────────────────────
 apt_install_if_missing() {
   local pkg="$1"
@@ -97,6 +111,18 @@ clone_or_pull() {
     log "Checking out $version"
     git -C "$dest" checkout "$version"
   fi
+}
+
+# ── GitHub latest release ────────────────────────────────────────────
+# Fetches the latest release tag from a GitHub repo.
+#   github_latest_tag <owner/repo>
+# Returns the tag name (e.g. "v0.25.0").
+github_latest_tag() {
+  local repo="$1"
+  local tag
+  tag="$(curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" \
+    | grep -m1 '"tag_name"' | cut -d'"' -f4 | tr -d '[:space:]')"
+  echo "$tag"
 }
 
 # ── GitHub release installer ─────────────────────────────────────────

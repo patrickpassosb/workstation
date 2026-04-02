@@ -9,6 +9,12 @@ if is_installed brew; then
   exit 0
 fi
 
+# Homebrew refuses to run as root
+if [[ "$(id -u)" -eq 0 ]]; then
+  warn "Homebrew cannot be installed as root. Run setup.sh without sudo, or install Homebrew manually."
+  exit 0
+fi
+
 log "Installing Homebrew..."
 NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 

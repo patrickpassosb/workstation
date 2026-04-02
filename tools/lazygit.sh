@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION=v0.50.0
 MODE="${1:-build}"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/helpers.sh"
+
+VERSION="${VERSION:-$(github_latest_tag jesseduffield/lazygit 2>/dev/null || echo v0.50.0)}"
 
 case "$MODE" in
   prebuilt)

@@ -25,16 +25,4 @@ cp "$SCRIPT_DIR/bashrc"    "$HOME/.bashrc"
 cp "$SCRIPT_DIR/gitconfig" "$HOME/.gitconfig"
 log "Configs restored"
 
-# Step 3: Prompt for secrets
-echo
-read -rp "Enter your GITHUB_MCP_PAT (or press Enter to skip): " pat
-if [[ -n "$pat" ]]; then
-  # Append to both shell configs
-  echo "export GITHUB_MCP_PAT=$pat" >> "$HOME/.zshrc"
-  echo "export GITHUB_MCP_PAT=$pat" >> "$HOME/.bashrc"
-  log "GITHUB_MCP_PAT written to ~/.zshrc and ~/.bashrc"
-else
-  log "Skipped GITHUB_MCP_PAT — you can set it later in ~/.zshrc and ~/.bashrc"
-fi
-
 log "Done. Previous configs saved in $BACKUP_DIR"

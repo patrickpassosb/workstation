@@ -11,7 +11,7 @@ case "$MODE" in
   prebuilt)
     ensure_node
     log "Installing gemini-cli via npm..."
-    npm install -g @anthropic-ai/gemini-cli || npm install -g @google/gemini-cli
+    npm install -g @google/gemini-cli
     ;;
   clone)
     clone_or_pull https://github.com/google-gemini/gemini-cli.git gemini-cli "$VERSION"
