@@ -141,5 +141,10 @@ if command -v eza > /dev/null 2>&1; then
 fi
 # zoxide → smarter cd (use 'z' to jump to frequent dirs)
 command -v zoxide > /dev/null 2>&1 && eval "$(zoxide init bash)"
+
+# Python/uv enforcement
+export PIP_REQUIRE_VIRTUALENV=true
+command -v uv > /dev/null 2>&1 && alias pip='uv pip'
+
 # Starship prompt
 command -v starship > /dev/null 2>&1 && eval "$(starship init bash)"

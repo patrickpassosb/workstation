@@ -84,7 +84,7 @@ Every tool script accepts a mode argument:
 | **Toolchains** | Installs Rust (rustup) and Node.js version manager (nvm) |
 | **Tools** | Installs 30+ tools using the selected level (prebuilt or build per tool) |
 | **Installers** | Installs proprietary apps (Brave, Chrome, Cursor, Warp, Discord, etc.) |
-| **Configs** | Restores shell configs, Flameshot shortcut, UFW firewall, auto security updates, SSH key generation |
+| **Configs** | Restores shell configs, Flags/Firewall/ClamAV security, npm hardening, SSH keys
 | **Cleanup** | `apt autoclean`, `flatpak update` |
 
 ## Pre-built install methods (Level 0)
@@ -167,6 +167,8 @@ workstation/
     ├── gitconfig
     ├── firewall.sh
     ├── unattended-upgrades.sh
+    ├── clamav.sh
+    ├── npm-security.sh
     └── restore-configs.sh
 ```
 
