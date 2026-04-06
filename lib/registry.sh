@@ -8,6 +8,7 @@
 declare -A TOOL_BUILD_LEVEL=(
   # Level 1 — Node.js CLIs (trivial npm builds)
   [codex]=1 [claude-code]=1 [gemini-cli]=1 [kilo-cli]=1 [vercel-cli]=1 [context-hub]=1
+  [ctx7]=1 [chub]=1 [omx]=1 [omo]=1 [omc]=1
   # Level 2 — small Go CLIs (single go build, seconds)
   [fzf]=2 [lazygit]=2 [lazydocker]=2 [opencode]=2
   # Level 3 — small Rust CLIs (fast cargo build, ~1 min each)

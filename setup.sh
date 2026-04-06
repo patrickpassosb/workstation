@@ -321,6 +321,7 @@ fi
 if [[ "$SKIP_INSTALLERS" == "false" ]]; then
   log ""
   bash "$SCRIPT_DIR/installers/install-all.sh" || warn "Some installers failed"
+  bash "$SCRIPT_DIR/installers/agent-tools.sh" || warn "Agent tools installation failed"
 else
   log ""
   log "Skipping installers (--skip-installers)"
@@ -341,6 +342,7 @@ if [[ "$SKIP_CONFIGS" == "false" ]]; then
   bash "$SCRIPT_DIR/configs/browser-extensions.sh" || warn "Browser extensions failed"
   bash "$SCRIPT_DIR/configs/defaults.sh" || warn "Default apps/wallpaper failed"
   bash "$SCRIPT_DIR/configs/sync-skills.sh" || warn "Skills sync failed"
+  bash "$SCRIPT_DIR/configs/centralize-skills.sh" || warn "Skills centralization failed"
   bash "$SCRIPT_DIR/configs/npm-security.sh" || warn "NPM security setup failed"
   bash "$SCRIPT_DIR/configs/unattended-upgrades.sh" || warn "Unattended upgrades setup failed"
   bash "$SCRIPT_DIR/configs/firewall.sh" || warn "Firewall setup failed"
@@ -466,6 +468,19 @@ if is_installed gh; then
   else
     log "GitHub CLI already authenticated"
   fi
+fi
+
+# Post-install verification for agentic tools
+if [[ "$SKIP_INSTALLERS" == "false" ]]; then
+  log ""
+  log "── Agentic Tool Verification ────────────────────────"
+  for tool in ctx7 chub omx omo sisyphus voquill; do
+    if is_installed "$tool"; then
+      log "  ✓ $tool is available"
+    else
+      warn "  ✗ $tool not found in PATH"
+    fi
+  done
 fi
 
 # Reminders
