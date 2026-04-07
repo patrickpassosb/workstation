@@ -139,5 +139,14 @@ else
 fi
 
 log ""
+log ""
 log "DNS configuration complete"
 log "Test at: https://test.nextdns.io (expect status: ok, protocol: DOT)"
+
+# ── Lock resolv.conf ────────────────────────────────────────────────
+# Making it immutable prevents accidental or malicious changes.
+if lsattr /etc/resolv.conf 2>/dev/null | grep -q "^....i"; then
+  sudo chattr -i /etc/resolv.conf
+fi
+log "Locking /etc/resolv.conf (making it immutable)..."
+sudo chattr +i /etc/resolv.conf || warn "Failed to lock /etc/resolv.conf (might be on a tmpfs)"

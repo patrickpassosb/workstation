@@ -24,6 +24,13 @@ When implementing features, ALWAYS search this document first. Find relevant exi
 **Keywords:** dotfiles, sync skills, agentic environment, centralized skills, context lookup
 **Status:** Existing
 
+### System-Level Focus Control
+**Spec:** `specs/features/system-focus.md`
+**Plan:** `specs/implementation-plans/system-focus-plan.md`
+**Code:** `configs/focus-mode.sh`
+**Keywords:** focus mode, block domains, etchosts, immutability, productivity, tiktok, netflix, adult sites, chattr, workstation setup, focus-protection, distraction-free, deep-work, core-config
+**Status:** Planning
+
 ---
 
 ## Conventions

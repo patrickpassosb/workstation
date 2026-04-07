@@ -348,6 +348,7 @@ if [[ "$SKIP_CONFIGS" == "false" ]]; then
   bash "$SCRIPT_DIR/configs/firewall.sh" || warn "Firewall setup failed"
   bash "$SCRIPT_DIR/configs/clamav.sh" || warn "ClamAV setup failed"
   bash "$SCRIPT_DIR/configs/dns-nextdns.sh" || warn "DNS/NextDNS setup failed"
+  bash "$SCRIPT_DIR/configs/focus-mode.sh" || warn "Focus Mode setup failed"
 else
   log "Skipping config restore (--skip-configs)"
 fi

@@ -1,4 +1,4 @@
-# Implementation Plan: System-Level Focus Control
+# Implementation Plan: System-Level Focus Control (Deep Block)
 
 ## Overview
 Add a low-level domain block and file immutability to the workstation setup.
@@ -11,8 +11,8 @@ Add a low-level domain block and file immutability to the workstation setup.
 ## Tasks
 
 ### Phase 1: Core Focus Script
-- [ ] Create `configs/focus-mode.sh`
-      - Implement comprehensive domain block list (TikTok, Netflix, Tube sites, Hentai, Creator platforms, Adult Manga, etc.)
+- [ ] Create/Update `configs/focus-mode.sh`
+      - Implement "Deep Block" domain list (Tabloids, Gambling, All major Porn sites, Creator platforms, Adult Manga, etc.)
       - Append to `/etc/hosts`
       - Run `sudo chattr +i /etc/hosts`
 
