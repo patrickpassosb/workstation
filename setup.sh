@@ -1,108 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Linux Workstation Setup Orchestrator
-# Modular setup for a fresh Linux installation.
-# Usage: ./setup.sh [--phase 1] [--level 0-10] [--skip-tools] [--skip-installers] [--skip-configs]
+# Prebuilt-only workstation setup.
+# Runs unattended. Installs every tool as a prebuilt binary (no compilation).
+# Usage: ./setup.sh
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/helpers.sh"
-source "$SCRIPT_DIR/lib/registry.sh"
-
-# ── Parse flags ───────────────────────────────────────────────────────
-PHASE=""
-LEVEL=""
-SKIP_TOOLS=false
-SKIP_INSTALLERS=false
-SKIP_CONFIGS=false
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --phase)
-      PHASE="$2"
-      shift 2
-      ;;
-    --phase=*)
-      PHASE="${1#--phase=}"
-      shift
-      ;;
-    --level)
-      LEVEL="$2"
-      shift 2
-      ;;
-    --level=*)
-      LEVEL="${1#--level=}"
-      shift
-      ;;
-    --skip-tools|--skip-source) SKIP_TOOLS=true; shift ;;
-    --skip-installers) SKIP_INSTALLERS=true; shift ;;
-    --skip-configs)    SKIP_CONFIGS=true; shift ;;
-    --help|-h)
-      cat <<'HELP'
-Usage: ./setup.sh [--phase 1] [--level 0-10] [--skip-tools] [--skip-installers] [--skip-configs]
-
-Phases:
-  1   CLI Tools & Small Apps (only phase implemented — Phases 2-10 in docs/roadmap.md)
-
-Levels (Phase 1):
-  0   Pre-built          — install everything pre-built, no compilation
-  1   First steps        — 6 Node.js CLIs (npm build)
-  2   Go basics          — + 4 Go CLIs (fzf, lazygit, lazydocker, opencode)
-  3   Rust basics        — + 6 Rust CLIs (ripgrep, fd, bat, eza, delta, zoxide)
-  4   Rust medium        — + 3 heavier builds (starship, uv, bun)
-  5   Official repos     — + 3 Go projects (gh, tailscale, docker CLI)
-  6   CMake & Meson      — + 2 CMake/Meson apps (flameshot, easyeffects)
-  7   Autotools intro    — + 2 autotools builds (htop, jq)
-  8   Core system        — + 2 system tools (tmux, zsh)
-  9   Core infrastructure— + git from source
-  10  Full source        — + Node.js from source — compile everything
-
-Flags:
-  --skip-tools         skip tool installation entirely
-  --skip-installers    skip proprietary app installers
-  --skip-configs       skip dotfile restoration
-HELP
-      exit 0
-      ;;
-    *) warn "Unknown flag: $1"; shift ;;
-  esac
-done
-
-# ── Interactive phase prompt ──────────────────────────────────────────
-if [[ -z "$PHASE" ]]; then
-  echo ""
-  echo "Select a phase:"
-  echo ""
-  echo "  1   CLI Tools & Small Apps (implemented)"
-  echo "  2-10 Coming soon — see docs/roadmap.md"
-  echo ""
-  read -rp "Phase [1]: " PHASE
-  PHASE="${PHASE:-1}"
-fi
-
-if [[ "$PHASE" != "1" ]]; then
-  err "Phase $PHASE is not yet implemented. See docs/roadmap.md for the roadmap."
-  exit 1
-fi
-
-# ── Interactive level prompt ──────────────────────────────────────────
-if [[ -z "$LEVEL" ]]; then
-  echo ""
-  echo "Select a level for Phase 1 — CLI Tools & Small Apps:"
-  echo ""
-  for i in $(seq 0 10); do
-    printf "  %-3s %-20s — %s\n" "$i" "${LEVEL_NAMES[$i]}" "${LEVEL_DESCRIPTIONS[$i]}"
-  done
-  echo ""
-  read -rp "Level [0-10]: " LEVEL
-fi
-
-if [[ ! "$LEVEL" =~ ^([0-9]|10)$ ]]; then
-  err "Invalid level: $LEVEL (must be 0-10)"
-  exit 1
-fi
-
-log "Selected: Phase $PHASE, Level $LEVEL — ${LEVEL_NAMES[$LEVEL]}"
 
 # ── gsettings helpers ─────────────────────────────────────────────────
 set_gsettings_if_key_exists() {
@@ -125,19 +29,16 @@ configure_flameshot_shortcut() {
 
   local shortcut_set=false
 
-  # Cinnamon (Linux Mint)
   if dconf list /org/cinnamon/desktop/keybindings/ >/dev/null 2>&1; then
     dconf write /org/cinnamon/desktop/keybindings/custom-list "['custom0']"
     dconf write /org/cinnamon/desktop/keybindings/custom-keybindings/custom0/name "'Flameshot'"
     dconf write /org/cinnamon/desktop/keybindings/custom-keybindings/custom0/command "'$flameshot_cmd'"
     dconf write /org/cinnamon/desktop/keybindings/custom-keybindings/custom0/binding "['Print']"
-    # Disable default screenshot on Print Screen
     dconf write /org/cinnamon/desktop/keybindings/media-keys/screenshot "@as []"
     log "Configured Print Screen → Flameshot (Cinnamon)"
     shortcut_set=true
   fi
 
-  # GNOME / Pop!_OS
   if command -v gsettings >/dev/null 2>&1 && gsettings list-keys org.gnome.settings-daemon.plugins.media-keys >/dev/null 2>&1; then
     local media_schema="org.gnome.settings-daemon.plugins.media-keys"
     local kb_path="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/"
@@ -158,14 +59,12 @@ configure_flameshot_shortcut() {
     shortcut_set=true
   fi
 
-  # COSMIC (Pop!_OS 24.04+)
   local cosmic_shortcuts_dir="$HOME/.config/cosmic/com.system76.CosmicSettings.Shortcuts/v1"
   if [[ -d "$cosmic_shortcuts_dir" ]]; then
     local sa_file="$cosmic_shortcuts_dir/system_actions"
     if [[ -f "$sa_file" ]] && grep -q 'Screenshot:' "$sa_file"; then
       sed -i "s|Screenshot:.*|Screenshot: \"$flameshot_cmd\",|" "$sa_file"
     elif [[ -f "$sa_file" ]]; then
-      # Append Screenshot entry before closing brace
       sed -i "\$i\\    Screenshot: \"$flameshot_cmd\"," "$sa_file"
     else
       cat > "$sa_file" <<SEOF
@@ -201,10 +100,10 @@ install_jetbrains_mono_nerd_font() {
 }
 
 # ══════════════════════════════════════════════════════════════════════
-# Phase 0: Preflight
+# Preflight
 # ══════════════════════════════════════════════════════════════════════
 log "═══════════════════════════════════════════════════════"
-log "  Phase 0: Preflight"
+log "  Preflight"
 log "═══════════════════════════════════════════════════════"
 
 if ! ping -c 1 -W 3 8.8.8.8 >/dev/null 2>&1; then
@@ -218,7 +117,7 @@ require_cmd apt-get
 require_cmd curl
 
 # ══════════════════════════════════════════════════════════════════════
-# Phase 1: Bootstrap
+# Bootstrap
 # ══════════════════════════════════════════════════════════════════════
 log ""
 log "═══════════════════════════════════════════════════════"
@@ -228,17 +127,14 @@ log "═════════════════════════
 log "Refreshing package index"
 sudo apt-get update -y
 
-# Base build tools
 for pkg in build-essential ca-certificates curl wget gnupg software-properties-common flatpak unzip; do
   apt_install_if_missing "$pkg" || true
 done
 
-# Small apt utilities
 for pkg in gnome-sushi folder-color-common timeshift vlc v4l2loopback-utils xclip; do
   apt_install_if_missing "$pkg" || true
 done
 
-# Enable Flathub
 if is_installed flatpak; then
   if ! flatpak remotes --columns=name 2>/dev/null | grep -qx flathub; then
     log "Adding Flathub remote"
@@ -248,19 +144,16 @@ if is_installed flatpak; then
   fi
 fi
 
-# Create productivity folders
 VIDEOS_DIR="$(xdg-user-dir VIDEOS 2>/dev/null || echo "$HOME/Videos")"
 for dir in "$HOME/TEMP" "$HOME/AppImage" "$VIDEOS_DIR/OBS Rec"; do
   mkdir -p "$dir"
 done
 
-# Create GitHub workspace folders
 for dir in "$HOME/GitHub" "$HOME/GitHub/forks" "$HOME/GitHub/learning" "$HOME/GitHub/work"; do
   mkdir -p "$dir"
 done
 log "Folders created (TEMP, AppImage, $VIDEOS_DIR/OBS Rec, GitHub/{forks,learning,work})"
 
-# Add Nautilus bookmarks
 BOOKMARKS_FILE="$HOME/.config/gtk-3.0/bookmarks"
 mkdir -p "$(dirname "$BOOKMARKS_FILE")"
 touch "$BOOKMARKS_FILE"
@@ -272,11 +165,10 @@ for dir in "$HOME/TEMP" "$HOME/AppImage" "$VIDEOS_DIR/OBS Rec"; do
   fi
 done
 
-# Install JetBrains Mono Nerd Font (needed for starship)
 install_jetbrains_mono_nerd_font || warn "Font installation failed"
 
 # ══════════════════════════════════════════════════════════════════════
-# Toolchains (rustup + nvm)
+# Toolchains (rustup + nvm — still needed for Node/Rust-based CLIs)
 # ══════════════════════════════════════════════════════════════════════
 log ""
 log "═══════════════════════════════════════════════════════"
@@ -285,19 +177,16 @@ log "═════════════════════════
 
 bash "$SCRIPT_DIR/installers/rustup.sh" || warn "Rustup installation failed"
 
-# Source cargo env for subsequent builds
 if [[ -f "$HOME/.cargo/env" ]]; then
   source "$HOME/.cargo/env"
 fi
 
 bash "$SCRIPT_DIR/installers/nvm.sh" || warn "NVM installation failed"
 
-# Source nvm for subsequent installs
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 # shellcheck disable=SC1091
 [[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
 
-# Ensure a Node.js version is available (nvm.sh may have just installed nvm without a node version)
 if ! command -v node >/dev/null 2>&1 && command -v nvm >/dev/null 2>&1; then
   log "No Node.js version found. Installing LTS..."
   nvm install --lts
@@ -305,53 +194,39 @@ if ! command -v node >/dev/null 2>&1 && command -v nvm >/dev/null 2>&1; then
 fi
 
 # ══════════════════════════════════════════════════════════════════════
-# Tools (level-based: prebuilt or build)
+# Tools (all prebuilt)
 # ══════════════════════════════════════════════════════════════════════
-if [[ "$SKIP_TOOLS" == "false" ]]; then
-  log ""
-  bash "$SCRIPT_DIR/tools/install-all.sh" "$LEVEL" || warn "Some tool installations failed"
-else
-  log ""
-  log "Skipping tools (--skip-tools)"
-fi
+log ""
+bash "$SCRIPT_DIR/tools/install-all.sh" || warn "Some tool installations failed"
 
 # ══════════════════════════════════════════════════════════════════════
-# Installers
+# Installers (proprietary apps + agentic tools)
 # ══════════════════════════════════════════════════════════════════════
-if [[ "$SKIP_INSTALLERS" == "false" ]]; then
-  log ""
-  bash "$SCRIPT_DIR/installers/install-all.sh" || warn "Some installers failed"
-  bash "$SCRIPT_DIR/installers/agent-tools.sh" || warn "Agent tools installation failed"
-else
-  log ""
-  log "Skipping installers (--skip-installers)"
-fi
+log ""
+bash "$SCRIPT_DIR/installers/install-all.sh" || warn "Some installers failed"
+bash "$SCRIPT_DIR/installers/agent-tools.sh" || warn "Agent tools installation failed"
 
 # ══════════════════════════════════════════════════════════════════════
-# Configs & Auth
+# Configs
 # ══════════════════════════════════════════════════════════════════════
 log ""
 log "═══════════════════════════════════════════════════════"
-log "  Configs & Auth"
+log "  Configs"
 log "═══════════════════════════════════════════════════════"
 
-if [[ "$SKIP_CONFIGS" == "false" ]]; then
-  bash "$SCRIPT_DIR/configs/restore-configs.sh" || warn "Config restore failed"
-  bash "$SCRIPT_DIR/configs/startup-apps.sh" || warn "Startup apps failed"
-  bash "$SCRIPT_DIR/configs/ide-extensions.sh" || warn "IDE extensions failed"
-  bash "$SCRIPT_DIR/configs/browser-extensions.sh" || warn "Browser extensions failed"
-  bash "$SCRIPT_DIR/configs/defaults.sh" || warn "Default apps/wallpaper failed"
-  bash "$SCRIPT_DIR/configs/sync-skills.sh" || warn "Skills sync failed"
-  bash "$SCRIPT_DIR/configs/centralize-skills.sh" || warn "Skills centralization failed"
-  bash "$SCRIPT_DIR/configs/npm-security.sh" || warn "NPM security setup failed"
-  bash "$SCRIPT_DIR/configs/unattended-upgrades.sh" || warn "Unattended upgrades setup failed"
-  bash "$SCRIPT_DIR/configs/firewall.sh" || warn "Firewall setup failed"
-  bash "$SCRIPT_DIR/configs/clamav.sh" || warn "ClamAV setup failed"
-  bash "$SCRIPT_DIR/configs/dns-nextdns.sh" || warn "DNS/NextDNS setup failed"
-  bash "$SCRIPT_DIR/configs/focus-mode.sh" || warn "Focus Mode setup failed"
-else
-  log "Skipping config restore (--skip-configs)"
-fi
+bash "$SCRIPT_DIR/configs/restore-configs.sh" || warn "Config restore failed"
+bash "$SCRIPT_DIR/configs/startup-apps.sh" || warn "Startup apps failed"
+bash "$SCRIPT_DIR/configs/ide-extensions.sh" || warn "IDE extensions failed"
+bash "$SCRIPT_DIR/configs/browser-extensions.sh" || warn "Browser extensions failed"
+bash "$SCRIPT_DIR/configs/defaults.sh" || warn "Default apps/wallpaper failed"
+bash "$SCRIPT_DIR/configs/sync-skills.sh" || warn "Skills sync failed"
+bash "$SCRIPT_DIR/configs/centralize-skills.sh" || warn "Skills centralization failed"
+bash "$SCRIPT_DIR/configs/npm-security.sh" || warn "NPM security setup failed"
+bash "$SCRIPT_DIR/configs/unattended-upgrades.sh" || warn "Unattended upgrades setup failed"
+bash "$SCRIPT_DIR/configs/firewall.sh" || warn "Firewall setup failed"
+bash "$SCRIPT_DIR/configs/clamav.sh" || warn "ClamAV setup failed"
+bash "$SCRIPT_DIR/configs/dns-nextdns.sh" || warn "DNS/NextDNS setup failed"
+bash "$SCRIPT_DIR/configs/focus-mode.sh" || warn "Focus Mode setup failed"
 
 # Set zsh as default shell
 if is_installed zsh; then
@@ -364,11 +239,10 @@ if is_installed zsh; then
   fi
 fi
 
-# Set terminal font to JetBrains Mono Nerd Font
+# Terminal font
 NERD_FONT="JetBrainsMonoNL Nerd Font"
 NERD_FONT_SIZE=12
 
-# GNOME Terminal
 if is_installed gnome-terminal; then
   PROFILE_ID=$(gsettings get org.gnome.Terminal.ProfilesList default 2>/dev/null | tr -d "'")
   if [[ -n "$PROFILE_ID" ]]; then
@@ -381,7 +255,6 @@ if is_installed gnome-terminal; then
   fi
 fi
 
-# Alacritty
 if is_installed alacritty; then
   ALACRITTY_CFG="$HOME/.config/alacritty/alacritty.toml"
   mkdir -p "$(dirname "$ALACRITTY_CFG")"
@@ -400,7 +273,6 @@ EOF
   fi
 fi
 
-# COSMIC Terminal (Pop!_OS)
 if is_installed cosmic-term; then
   COSMIC_CFG="$HOME/.config/cosmic/com.system76.CosmicTerm/v1"
   mkdir -p "$COSMIC_CFG"
@@ -409,7 +281,7 @@ if is_installed cosmic-term; then
   log "COSMIC Terminal font set to ${NERD_FONT} ${NERD_FONT_SIZE}"
 fi
 
-# SSH config (remember key after first unlock, no ssh-add needed after reboot)
+# SSH config (remember key after first unlock). Does NOT generate a key.
 SSH_CONFIG="$HOME/.ssh/config"
 mkdir -p "$HOME/.ssh"
 if [[ ! -f "$SSH_CONFIG" ]]; then
@@ -434,32 +306,29 @@ else
   log "Starship config already exists — skipping"
 fi
 
-# Configure Flameshot as Print Screen
 configure_flameshot_shortcut || warn "Flameshot shortcut setup was not fully applied"
 
-# Grant Flatpak Flameshot clipboard access (needs xclip + session-bus)
 if command -v flatpak >/dev/null 2>&1 && flatpak info org.flameshot.Flameshot >/dev/null 2>&1; then
   flatpak override --user org.flameshot.Flameshot --socket=session-bus
   log "Flameshot Flatpak clipboard access granted"
 fi
 
 # Post-install verification for agentic tools
-if [[ "$SKIP_INSTALLERS" == "false" ]]; then
-  log ""
-  log "── Agentic Tool Verification ────────────────────────"
-  for tool in ctx7 chub omx omo sisyphus voquill; do
-    if is_installed "$tool"; then
-      log "  ✓ $tool is available"
-    else
-      warn "  ✗ $tool not found in PATH"
-    fi
-  done
-fi
+log ""
+log "── Agentic Tool Verification ────────────────────────"
+for tool in ctx7 chub omx omo sisyphus voquill; do
+  if is_installed "$tool"; then
+    log "  ✓ $tool is available"
+  else
+    warn "  ✗ $tool not found in PATH"
+  fi
+done
 
-# Reminders
 log ""
 log "── Post-setup reminders ──────────────────────────────"
-log "  • Run: sudo tailscale up       (join your Tailnet)"
+log "  • Generate an SSH key when you need it:  ssh-keygen -t ed25519"
+log "  • Authenticate GitHub when you need it:  gh auth login -p ssh -w"
+log "  • Join your Tailnet:                     sudo tailscale up"
 
 # ══════════════════════════════════════════════════════════════════════
 # Cleanup
@@ -477,6 +346,6 @@ fi
 
 log ""
 log "═══════════════════════════════════════════════════════"
-log "  Setup complete! Phase $PHASE, Level $LEVEL — ${LEVEL_NAMES[$LEVEL]}"
+log "  Setup complete!"
 log "═══════════════════════════════════════════════════════"
 log "You may need to log out/in for all changes to take effect."
