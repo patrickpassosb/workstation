@@ -10,15 +10,15 @@ source "$SCRIPT_DIR/../lib/helpers.sh"
 case "$MODE" in
   prebuilt)
     ensure_node
-    log "Installing context-hub via npm..."
-    npm install -g @aisuite/chub
+    log "Installing context-hub..."
+    bun_or_npm_install_global @aisuite/chub
     ;;
   clone)
     clone_or_pull https://github.com/andrewyng/context-hub.git context-hub "$VERSION"
     log "context-hub $VERSION cloned to $SRC_DIR/context-hub"
-    log "To build manually (requires Node.js and npm):"
+    log "To build manually (requires Node.js; bun preferred, npm works):"
     log "  cd $SRC_DIR/context-hub"
-    log "  npm install"
+    log "  bun install   # or: npm install"
     log "  npm run build"
     log "  sudo npm link"
     ;;
@@ -27,7 +27,7 @@ case "$MODE" in
     ensure_node
     log "Building context-hub $VERSION..."
     cd "$SRC_DIR/context-hub"
-    npm install
+    bun_or_npm_install
     npm run build
     sudo npm link
     log "context-hub installed via npm link"

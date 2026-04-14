@@ -10,8 +10,8 @@ source "$SCRIPT_DIR/../lib/helpers.sh"
 case "$MODE" in
   prebuilt)
     ensure_node
-    log "Installing opencode via npm..."
-    npm install -g opencode-ai
+    log "Installing opencode..."
+    bun_or_npm_install_global opencode-ai
     ;;
   clone)
     clone_or_pull https://github.com/opencode-ai/opencode.git opencode "$VERSION"

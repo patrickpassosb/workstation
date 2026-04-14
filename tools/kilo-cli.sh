@@ -10,15 +10,15 @@ source "$SCRIPT_DIR/../lib/helpers.sh"
 case "$MODE" in
   prebuilt)
     ensure_node
-    log "Installing kilo-cli via npm..."
-    npm install -g kilocode
+    log "Installing kilo-cli..."
+    bun_or_npm_install_global kilocode
     ;;
   clone)
     clone_or_pull https://github.com/Kilo-Org/kilocode.git kilocode "$VERSION"
     log "kilo-cli $VERSION cloned to $SRC_DIR/kilocode"
-    log "To build manually (requires Node.js and npm):"
+    log "To build manually (requires Node.js; bun preferred, npm works):"
     log "  cd $SRC_DIR/kilocode"
-    log "  npm install"
+    log "  bun install   # or: npm install"
     log "  npm run build"
     log "  sudo npm link"
     ;;
@@ -27,7 +27,7 @@ case "$MODE" in
     ensure_node
     log "Building kilo-cli $VERSION..."
     cd "$SRC_DIR/kilocode"
-    npm install
+    bun_or_npm_install
     npm run build
     sudo npm link
     log "kilo-cli installed via npm link"

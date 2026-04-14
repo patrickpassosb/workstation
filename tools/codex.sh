@@ -10,15 +10,15 @@ source "$SCRIPT_DIR/../lib/helpers.sh"
 case "$MODE" in
   prebuilt)
     ensure_node
-    log "Installing codex via npm..."
-    npm install -g @openai/codex
+    log "Installing codex..."
+    bun_or_npm_install_global @openai/codex
     ;;
   clone)
     clone_or_pull https://github.com/openai/codex.git codex "$VERSION"
     log "codex $VERSION cloned to $SRC_DIR/codex"
-    log "To build manually (requires Node.js and npm):"
+    log "To build manually (requires Node.js; bun preferred, npm works):"
     log "  cd $SRC_DIR/codex/codex-cli"
-    log "  npm install"
+    log "  bun install   # or: npm install"
     log "  npm run build"
     log "  sudo npm link"
     ;;
@@ -27,7 +27,7 @@ case "$MODE" in
     ensure_node
     log "Building codex $VERSION..."
     cd "$SRC_DIR/codex/codex-cli"
-    npm install
+    bun_or_npm_install
     npm run build
     sudo npm link
     log "codex installed via npm link"

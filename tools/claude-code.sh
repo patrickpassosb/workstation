@@ -10,15 +10,15 @@ source "$SCRIPT_DIR/../lib/helpers.sh"
 case "$MODE" in
   prebuilt)
     ensure_node
-    log "Installing claude-code via npm..."
-    npm install -g @anthropic-ai/claude-code
+    log "Installing claude-code..."
+    bun_or_npm_install_global @anthropic-ai/claude-code
     ;;
   clone)
     clone_or_pull https://github.com/anthropics/claude-code.git claude-code "$VERSION"
     log "claude-code $VERSION cloned to $SRC_DIR/claude-code"
-    log "To build manually (requires Node.js and npm):"
+    log "To build manually (requires Node.js; bun preferred, npm works):"
     log "  cd $SRC_DIR/claude-code"
-    log "  npm install"
+    log "  bun install   # or: npm install"
     log "  npm run build"
     log "  sudo npm link"
     ;;
@@ -27,7 +27,7 @@ case "$MODE" in
     ensure_node
     log "Building claude-code $VERSION..."
     cd "$SRC_DIR/claude-code"
-    npm install
+    bun_or_npm_install
     npm run build
     sudo npm link
     log "claude-code installed via npm link"

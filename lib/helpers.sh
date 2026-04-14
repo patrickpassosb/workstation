@@ -187,3 +187,26 @@ ensure_node() {
   warn "Node.js is not available. Install it first (tools/nodejs.sh)."
   return 1
 }
+
+# ── Bun-preferred Node package installers ────────────────────────────
+# Bun is ~10-20x faster than npm. Fall back to npm when bun isn't available.
+bun_or_npm_install_global() {
+  local pkg="$1"
+  if is_installed bun; then
+    log "  Using bun (global): $pkg"
+    bun install -g "$pkg"
+  else
+    log "  Using npm (global): $pkg"
+    npm install -g "$pkg"
+  fi
+}
+
+bun_or_npm_install() {
+  if is_installed bun; then
+    log "  Using bun install (cwd: $(pwd))"
+    bun install
+  else
+    log "  Using npm install (cwd: $(pwd))"
+    npm install
+  fi
+}

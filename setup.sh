@@ -443,34 +443,6 @@ if command -v flatpak >/dev/null 2>&1 && flatpak info org.flameshot.Flameshot >/
   log "Flameshot Flatpak clipboard access granted"
 fi
 
-# SSH key generation
-if [[ ! -f "$HOME/.ssh/id_ed25519" ]]; then
-  echo
-  read -rp "Generate a new SSH key? [y/N]: " gen_ssh
-  if [[ "$gen_ssh" =~ ^[Yy] ]]; then
-    ssh-keygen -t ed25519 -C "$(git config user.email 2>/dev/null || echo "$USER@$(hostname)")" -f "$HOME/.ssh/id_ed25519"
-    log "SSH key generated"
-  fi
-else
-  log "SSH key already exists"
-fi
-
-# GitHub authentication (SSH key upload + CLI auth in one step)
-if is_installed gh; then
-  if ! gh auth status >/dev/null 2>&1; then
-    echo
-    read -rp "Authenticate with GitHub now? (uploads SSH key + authenticates CLI) [y/N]: " do_gh
-    if [[ "$do_gh" =~ ^[Yy] ]]; then
-      log "Starting GitHub authentication..."
-      log "A browser window will open. Paste the code shown in the terminal."
-      gh auth login -p ssh -h github.com -w
-      log "GitHub CLI authenticated and SSH key uploaded"
-    fi
-  else
-    log "GitHub CLI already authenticated"
-  fi
-fi
-
 # Post-install verification for agentic tools
 if [[ "$SKIP_INSTALLERS" == "false" ]]; then
   log ""

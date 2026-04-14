@@ -10,15 +10,15 @@ source "$SCRIPT_DIR/../lib/helpers.sh"
 case "$MODE" in
   prebuilt)
     ensure_node
-    log "Installing vercel-cli via npm..."
-    npm install -g vercel
+    log "Installing vercel-cli..."
+    bun_or_npm_install_global vercel
     ;;
   clone)
     clone_or_pull https://github.com/vercel/vercel.git vercel "$VERSION"
     log "vercel-cli $VERSION cloned to $SRC_DIR/vercel"
-    log "To build manually (requires Node.js and npm):"
+    log "To build manually (requires Node.js; bun preferred, npm works):"
     log "  cd $SRC_DIR/vercel"
-    log "  npm install"
+    log "  bun install   # or: npm install"
     log "  npx turbo run build --filter=vercel"
     log "  cd packages/cli"
     log "  sudo npm link"
@@ -28,7 +28,7 @@ case "$MODE" in
     ensure_node
     log "Building vercel-cli $VERSION..."
     cd "$SRC_DIR/vercel"
-    npm install
+    bun_or_npm_install
     npx turbo run build --filter=vercel
     cd packages/cli
     sudo npm link
