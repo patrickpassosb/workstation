@@ -2,14 +2,14 @@
 set -euo pipefail
 
 # Workstation Focus Mode (Deep Block)
-# Blocks 50+ distracting and NSFW domains at the OS level.
+# Blocks 100+ distracting and NSFW domains at the OS level.
 # Excludes YouTube, Twitch, Reddit, and LinkedIn as requested.
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/helpers.sh"
 
 log "═══════════════════════════════════════════════════════"
-log "  Focus Mode — Deep Block (50+ Domains)"
+log "  Focus Mode — Deep Block (100+ Domains)"
 log "═══════════════════════════════════════════════════════"
 
 # ── Domain List ──────────────────────────────────────────────────────
@@ -124,13 +124,37 @@ DOMAINS=(
   "9gag.com" "www.9gag.com"
   "4chan.org" "www.4chan.org"
 
-  # Streaming Platforms
+  # Streaming Platforms — Mainstream
   "netflix.com" "www.netflix.com"
   "primevideo.com" "www.primevideo.com"
   "disneyplus.com" "www.disneyplus.com"
   "hulu.com" "www.hulu.com"
   "hbomax.com" "www.hbomax.com"
+  "max.com" "www.max.com"
   "paramountplus.com" "www.paramountplus.com"
+  "peacocktv.com" "www.peacocktv.com"
+  "appletv.com" "www.appletv.com" "tv.apple.com"
+  "tubitv.com" "www.tubitv.com"
+  "pluto.tv" "www.pluto.tv"
+  "mubi.com" "www.mubi.com"
+  "starz.com" "www.starz.com"
+  "showtime.com" "www.showtime.com"
+
+  # Streaming Platforms — Anime
+  "crunchyroll.com" "www.crunchyroll.com" "beta.crunchyroll.com" "static.crunchyroll.com"
+  "hidive.com" "www.hidive.com"
+  "vrv.co" "www.vrv.co"
+  "funimation.com" "www.funimation.com"
+
+  # Streaming Platforms — Brazilian / LatAm
+  "globoplay.com" "www.globoplay.com" "globoplay.globo.com"
+  "starplus.com" "www.starplus.com" "star-plus.com"
+  "clarovideo.com" "www.clarovideo.com"
+  "vix.com" "www.vix.com"
+
+  # Streaming Platforms — Sports
+  "dazn.com" "www.dazn.com"
+  "espn.com" "www.espn.com" "plus.espn.com"
 )
 
 # ── Update /etc/hosts ───────────────────────────────────────────────
