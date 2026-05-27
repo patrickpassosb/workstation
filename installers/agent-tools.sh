@@ -60,12 +60,4 @@ else
     log "  ✓ omc already installed"
 fi
 
-# 3. Oh My OpenAgent (OMO)
-log "Installing oh-my-openagent..."
-if ! is_installed omo; then
-    $RUNNER oh-my-openagent install || warn "Failed to install OMO"
-else
-    log "  ✓ omo already installed"
-fi
-
 log "Agentic tools installation complete."

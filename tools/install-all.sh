@@ -49,7 +49,7 @@ log ""
 log "═══════════════════════════════════════════════════════"
 log "  Node.js/TS CLIs"
 log "═══════════════════════════════════════════════════════"
-for name in codex gemini-cli kilo-cli vercel-cli context-hub claude-code; do
+for name in codex kilo-cli vercel-cli context-hub claude-code; do
   run_tool "$name"
 done
 
