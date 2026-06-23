@@ -25,3 +25,21 @@ else
   sudo apt-get install -y docker-ce docker-ce-cli containerd.io \
     docker-buildx-plugin docker-compose-plugin
 fi
+
+# Start the daemon and grant the current user access. Without this the
+# security-lab network check in setup.sh silently fails on a fresh install.
+if command -v systemctl >/dev/null 2>&1; then
+  if ! systemctl is-active --quiet docker 2>/dev/null; then
+    log "Enabling and starting docker daemon"
+    sudo systemctl enable --now docker || warn "Failed to start docker daemon"
+  fi
+  if [[ -n "${SUDO_USER:-}" ]]; then
+    target_user="$SUDO_USER"
+  else
+    target_user="${USER:-$(whoami)}"
+  fi
+  if getent group docker >/dev/null 2>&1 && ! id -nG "$target_user" 2>/dev/null | grep -qw docker; then
+    log "Adding $target_user to the docker group (re-login required)"
+    sudo usermod -aG docker "$target_user" || warn "Failed to add $target_user to docker group"
+  fi
+fi

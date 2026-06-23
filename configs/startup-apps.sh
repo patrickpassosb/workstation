@@ -26,27 +26,6 @@ else
   warn "EasyEffects not installed — skipping autostart"
 fi
 
-# ── StayFree ─────────────────────────────────────────────────────────
-if is_installed stayfree-desktop || [[ -f /opt/StayFree/stayfree-desktop ]]; then
-  cat > "$AUTOSTART_DIR/stayfree-desktop.desktop" <<'EOF'
-[Desktop Entry]
-Name=StayFree
-Exec=/opt/StayFree/stayfree-desktop %U
-Terminal=false
-Type=Application
-Icon=stayfree-desktop
-StartupWMClass=StayFree
-Comment=Analytics to help you understand and control your pc usage
-Categories=Utility;
-X-GNOME-Autostart-enabled=true
-NoDisplay=false
-Hidden=false
-EOF
-  log "Added autostart: StayFree"
-else
-  warn "StayFree not installed — skipping autostart"
-fi
-
 # ── Flameshot ─────────────────────────────────────────────────────────
 if is_installed flameshot; then
   cat > "$AUTOSTART_DIR/flameshot.desktop" <<'EOF'

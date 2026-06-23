@@ -38,8 +38,8 @@ for skill in "${LOCAL_SKILLS[@]}"; do
 done
 
 # 3. Sync external Context7 documentation-lookup skill
-# Path provided in implementation plan
-CONTEXT7_SKILL="/home/patrick/.gemini/extensions/context7/plugins/claude/context7/skills/documentation-lookup"
+# Override with CONTEXT7_SKILL=/path/to/skill when this directory does not exist.
+CONTEXT7_SKILL="${CONTEXT7_SKILL:-$HOME/.gemini/extensions/context7/plugins/claude/context7/skills/documentation-lookup}"
 
 log "Syncing Context7 external skills..."
 if [[ -d "$CONTEXT7_SKILL" ]]; then

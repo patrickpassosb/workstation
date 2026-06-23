@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install specialized agentic tools using Bun
+# Install specialized agentic tools using Bun (always installs latest from npm)
 
 set -euo pipefail
 
@@ -21,8 +21,7 @@ else
     RUNNER="bunx"
 fi
 
-# 2. Global Node tools
-log "Installing global agentic tools..."
+log "Installing global agentic tools (always latest)..."
 
 # Context7
 if ! is_installed ctx7; then

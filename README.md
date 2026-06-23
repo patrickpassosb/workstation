@@ -10,6 +10,14 @@ cd workstation
 ./setup.sh
 ```
 
+The full install takes ~5-10 min depending on network. To skip the security lab
+(Nuclei, Semgrep, CodeQL, Snyk, Ghidra, AFL++, MCPs, etc.) — useful for re-runs
+on an already-set-up machine — pass `--skip-security-lab`.
+
+```bash
+./setup.sh --skip-security-lab
+```
+
 ## What it does
 
 | Step | What it does |
@@ -59,23 +67,54 @@ Every tool script installs the prebuilt binary when run directly:
 
 ```
 workstation/
-├── setup.sh                  # main orchestrator — run this
+├── setup.sh                       # main orchestrator — run this
+├── fix-sources.sh                 # patches stale distro codenames in third-party apt sources
 ├── lib/
-│   └── helpers.sh            # shared bash helpers (incl. bun_or_npm_install*)
-├── tools/                    # prebuilt tool installers
-│   ├── install-all.sh        # runs every tool
-│   └── *.sh                  # one per tool
-├── installers/               # proprietary apps + toolchains + agentic tools
+│   └── helpers.sh                 # shared bash helpers (apt/dnf dispatch, Docker wrappers, etc.)
+├── tools/                         # prebuilt tool installers (one per tool)
+│   ├── install-all.sh             # runs every tool
+│   ├── codex.sh, claude-code.sh, opencode.sh, kilo-cli.sh, vercel-cli.sh, context-hub.sh
+│   ├── lazygit.sh, lazydocker.sh, eza.sh, delta.sh, bat.sh, fd.sh, ripgrep.sh, fzf.sh
+│   ├── zsh.sh, git.sh, tmux.sh, htop.sh, jq.sh, starship.sh, zoxide.sh
+│   ├── bun.sh, uv.sh, nodejs.sh
+│   ├── docker.sh, gh.sh, tailscale.sh
+│   ├── flameshot.sh, easyeffects.sh, obs.sh, telegram.sh, audacity.sh, gimp.sh, bitwarden.sh
+│   └── security lab: security-lab.sh, semgrep.sh, codeql.sh, nuclei.sh, snyk-agent-scan.sh,
+│       caido.sh, burp.sh, ghidra.sh, aflpp.sh, obsidian.sh, oss-fuzz-gen.sh
+├── installers/                    # proprietary apps + toolchains + agentic CLIs
 │   ├── install-all.sh
-│   ├── agent-tools.sh
-│   ├── rustup.sh / nvm.sh
-│   └── brave.sh / chrome.sh / warp.sh / ...
-└── configs/                  # dotfiles, security, defaults
-    ├── zshrc / bashrc / gitconfig / starship.toml
-    ├── firewall.sh / clamav.sh / dns-nextdns.sh / focus-mode.sh
-    ├── npm-security.sh / unattended-upgrades.sh
-    └── restore-configs.sh
+│   ├── agent-tools.sh             # ctx7, chub, omx, omc (bun install -g)
+│   ├── rustup.sh, nvm.sh, oh-my-zsh.sh, homebrew.sh
+│   └── brave.sh, chrome.sh, warp.sh, zoom.sh, discord.sh, voquill.sh, antigravity.sh, stayfree.sh
+├── configs/                       # dotfiles + system hardening + defaults
+│   ├── zshrc, bashrc, gitconfig, starship.toml
+│   ├── restore-configs.sh
+│   ├── defaults.sh                # default browser, dark mode, wallpaper
+│   ├── ide-extensions.sh          # Antigravity extension set
+│   ├── browser-extensions.sh      # Brave / Chrome managed extension policy
+│   ├── startup-apps.sh            # autostart .desktop files
+│   ├── obsidian-vault.sh          # clones & registers the Obsidian vault
+│   ├── sync-skills.sh, centralize-skills.sh, lab-mcp-consent.sh, lab-mcps.json
+│   ├── summary.sh                 # post-install ✓/✗ report
+│   ├── firewall.sh, clamav.sh, dns-nextdns.sh, focus-mode.sh
+│   ├── npm-security.sh, unattended-upgrades.sh
+│   └── wallpapers/                # default wallpaper assets
+├── prompts/
+│   └── implement.md               # legacy Ralph loop task runner
+├── skills/                        # local agent skills (sync'd to ~/.agents/skills)
+└── docs/
+    └── security-lab.md            # lab operator notes
 ```
+
+### Versioning policy
+
+This script always installs the latest version of every tool:
+
+- **apt / dnf packages** (zsh, git, tmux, jq, htop, bat, fd, fzf, ripgrep, gh, docker, etc.) — the distro repo's current version, refreshed on every run.
+- **Flatpak apps** (flameshot, OBS, GIMP, Audacity, Telegram, Bitwarden, EasyEffects) — the current Flathub release.
+- **GitHub-release binaries** (lazygit, lazydocker, eza, obsidian) — `github_latest_tag` is queried at install time.
+- **Official curl-piped installers** (bun, uv, starship, zoxide, rustup, tailscale, oh-my-zsh) — upstream's `latest` (or the latest tagged release).
+- **Node global CLIs** (claude-code, codex, opencode, kilo-cli, vercel-cli, context-hub, ctx7, chub, omx, omc) — `@latest` from the npm registry, installed via bun (or npm fallback).
 
 ## Obsidian
 
@@ -132,11 +171,19 @@ See `docs/security-lab.md` for the quick operator notes.
 
 ## After setup
 
+`setup.sh` ends by printing a `What's installed` summary showing every tool the
+script knows about with a green ✓ (and a version) or red ✗ (missing), plus the
+manual steps. On a freshly installed machine the manual steps are:
+
 ```bash
 ssh-keygen -t ed25519       # generate SSH key (not done automatically)
 gh auth login -p ssh -w     # authenticate GitHub CLI (not done automatically)
 sudo tailscale up           # join your Tailnet
+obsidian-app                # open Obsidian once, enable CLI in Settings -> General
 ```
+
+After `setup.sh` finishes you also need to **re-login (or reboot)** so the
+`docker` group assignment takes effect.
 
 ## Other branches
 

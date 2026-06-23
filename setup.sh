@@ -3,10 +3,30 @@ set -euo pipefail
 
 # Prebuilt-only workstation setup.
 # Runs unattended. Installs every tool as a prebuilt binary (no compilation).
-# Usage: ./setup.sh
+# Usage: ./setup.sh [--skip-security-lab]
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/helpers.sh"
+
+# Parse CLI flags
+SKIP_SECURITY_LAB=0
+for arg in "$@"; do
+  case "$arg" in
+    --skip-security-lab) SKIP_SECURITY_LAB=1 ;;
+    --with-security-lab) SKIP_SECURITY_LAB=0 ;;
+    -h|--help)
+      cat <<'USAGE'
+Usage: ./setup.sh [--skip-security-lab] [--with-security-lab]
+
+  --skip-security-lab  Skip Nuclei, Semgrep, CodeQL, Snyk, MCPs, Ghidra, etc.
+  --with-security-lab  Install the security lab (default).
+USAGE
+      exit 0
+      ;;
+    *) warn "Unknown argument: $arg" ;;
+  esac
+done
+export SKIP_SECURITY_LAB
 
 # ── gsettings helpers ─────────────────────────────────────────────────
 set_gsettings_if_key_exists() {
@@ -185,6 +205,10 @@ for dir in "$HOME/TEMP" "$HOME/AppImage" "$VIDEOS_DIR/OBS Rec"; do
     log "Added Nautilus bookmark: $dir"
   fi
 done
+
+# Patch any third-party apt sources that hard-code a stale distro codename
+# (e.g. Linux Mint's "zena" in an insync.list). No-op on Fedora.
+bash "$SCRIPT_DIR/fix-sources.sh" || warn "fix-sources.sh reported issues"
 
 install_jetbrains_mono_nerd_font || warn "Font installation failed"
 
@@ -409,11 +433,8 @@ else
 fi
 
 log ""
-log "── Post-setup reminders ──────────────────────────────"
-log "  • Generate an SSH key when you need it:  ssh-keygen -t ed25519"
-log "  • Authenticate GitHub when you need it:  gh auth login -p ssh -w"
-log "  • Join your Tailnet:                     sudo tailscale up"
-log "  • Open Obsidian once to register CLI:    obsidian-app"
+log "── Post-setup summary ───────────────────────────────"
+bash "$SCRIPT_DIR/configs/summary.sh" || warn "summary.sh reported issues"
 
 # ══════════════════════════════════════════════════════════════════════
 # Cleanup

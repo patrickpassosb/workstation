@@ -16,6 +16,6 @@ if ! is_installed uv; then
   exit 1
 fi
 
-log "Installing Semgrep with uv tool..."
+log "Installing Semgrep with uv tool (latest)..."
 uv tool install semgrep
 log "Semgrep installed"

@@ -49,10 +49,14 @@ for name in nodejs; do
   run_tool "$name"
 done
 
-# Security lab
-for name in security-lab semgrep codeql nuclei snyk-agent-scan caido burp ghidra aflpp oss-fuzz-gen; do
-  run_tool "$name"
-done
+# Security lab (skippable via --skip-security-lab on setup.sh)
+if [[ "${SKIP_SECURITY_LAB:-0}" == "1" ]]; then
+  log "Skipping security lab (SKIP_SECURITY_LAB=1)"
+else
+  for name in security-lab semgrep codeql nuclei snyk-agent-scan caido burp ghidra aflpp oss-fuzz-gen; do
+    run_tool "$name"
+  done
+fi
 
 # Heavy apps (Flatpak / distro packages)
 for name in obs telegram audacity gimp bitwarden; do

@@ -9,7 +9,7 @@ if is_installed rustc; then
   exit 0
 fi
 
-log "Installing Rust via rustup..."
+log "Installing Rust via rustup (latest)..."
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
 # Source cargo env so subsequent commands in this session can find rustc/cargo

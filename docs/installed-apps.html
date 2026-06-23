@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Workstation — Installed Apps &amp; Tools</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #0f1115; --fg: #e6e8eb; --muted: #8a93a3; --line: #232733;
+    --accent: #7cc4ff; --good: #7ad88a; --warn: #ffce6a; --bad: #ff7a7a;
+    --info: #b48cff; --gray: #6b7280; --code: #14171f;
+    --card: #161922;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#fafbfc; --fg:#1a1d23; --muted:#5b6473; --line:#e3e6eb; --code:#f1f3f6; --card:#ffffff; }
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--fg); }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6; max-width: 1080px; margin: 2.5rem auto; padding: 0 1.25rem;
+  }
+  h1, h2, h3 { line-height: 1.25; }
+  h1 { font-size: 2rem; margin-bottom: 0.25rem; }
+  h2 {
+    font-size: 1.35rem; margin-top: 2.6rem; border-bottom: 1px solid var(--line);
+    padding-bottom: 0.4rem; display: flex; align-items: center; gap: 0.6rem;
+  }
+  h2 .count {
+    color: var(--muted); font-size: 0.85rem; font-weight: 400;
+    border: 1px solid var(--line); padding: 1px 8px; border-radius: 999px;
+  }
+  h3 { font-size: 1.05rem; margin-top: 1.4rem; color: var(--muted); font-weight: 600; }
+  .muted { color: var(--muted); font-size: 0.9rem; }
+  .pill {
+    display:inline-block; padding:2px 9px; border:1px solid var(--line);
+    border-radius:999px; font-size:0.72rem; font-weight: 600;
+    letter-spacing: 0.02em; text-transform: uppercase;
+  }
+  .pill.good  { color: var(--good); border-color: rgba(122,216,138,0.4); background: rgba(122,216,138,0.08); }
+  .pill.warn  { color: var(--warn); border-color: rgba(255,206,106,0.4); background: rgba(255,206,106,0.08); }
+  .pill.info  { color: var(--info); border-color: rgba(180,140,255,0.4); background: rgba(180,140,255,0.08); }
+  .pill.gray  { color: var(--gray); border-color: var(--line); background: transparent; }
+  .pill.accent{ color: var(--accent); border-color: rgba(124,196,255,0.4); background: rgba(124,196,255,0.08); }
+  code { background: var(--code); padding: 1px 6px; border-radius: 4px; font-size: 0.88em; }
+  pre { background: var(--code); padding: 12px 14px; border-radius: 8px; overflow-x: auto; border: 1px solid var(--line); font-size: 0.85rem; }
+  pre code { background: transparent; padding: 0; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 2rem 0; }
+  footer { color: var(--muted); font-size: 0.85rem; margin-top: 3rem; }
+
+  /* Summary stats */
+  .stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px; margin: 1.25rem 0 0;
+  }
+  .stat {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .stat .n { font-size: 1.7rem; font-weight: 700; line-height: 1.1; }
+  .stat .l { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+
+  /* Card grid */
+  .grid {
+    display: grid; gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    margin-top: 0.75rem;
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 10px; padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .card .name {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .card .name strong { font-size: 0.98rem; }
+  .card .meta {
+    color: var(--muted); font-size: 0.83rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    word-break: break-word;
+  }
+  .card .note { color: var(--muted); font-size: 0.8rem; }
+
+  /* TOC */
+  nav.toc {
+    display: flex; flex-wrap: wrap; gap: 6px; margin: 1rem 0 0.25rem;
+  }
+  nav.toc a {
+    color: var(--muted); text-decoration: none; font-size: 0.8rem;
+    border: 1px solid var(--line); padding: 4px 10px; border-radius: 999px;
+  }
+  nav.toc a:hover { color: var(--fg); border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<h1>Workstation — Installed Apps &amp; Tools</h1>
+<p class="muted">
+  Auto-generated inventory of everything <code>setup.sh</code> installs on a fresh Fedora KDE or Ubuntu 24.04 host.
+  Grouped by <em>install method</em> · status pills indicate whether the install is automatic, manual, or platform-gated.
+</p>
+
+<nav class="toc" aria-label="Sections">
+  <a href="#distro">Distro packages</a>
+  <a href="#appimage">AppImage</a>
+  <a href="#ghrelease">GitHub release</a>
+  <a href="#flatpak">Flatpak</a>
+  <a href="#uv">uv tool</a>
+  <a href="#uvx">uvx wrapper</a>
+  <a href="#brew">Homebrew</a>
+  <a href="#curl">curl | sh</a>
+  <a href="#nvm">nvm + Node</a>
+  <a href="#npm">npm / bun global</a>
+  <a href="#gitclone">git clone</a>
+  <a href="#docker">Docker wrapper</a>
+  <a href="#ide">IDE extensions</a>
+  <a href="#browser">Browser extensions</a>
+  <a href="#manual">Manual</a>
+  <a href="#config">Config-only</a>
+  <a href="#planned">Planned</a>
+</nav>
+
+<div class="stats">
+  <div class="stat"><div class="n">~70</div><div class="l">Apps &amp; tools</div></div>
+  <div class="stat"><div class="n">9</div><div class="l">Flatpaks</div></div>
+  <div class="stat"><div class="n">5</div><div class="l">Node CLIs</div></div>
+  <div class="stat"><div class="n">4</div><div class="l">Agent CLIs</div></div>
+  <div class="stat"><div class="n">4</div><div class="l">Manual items</div></div>
+  <div class="stat"><div class="n">3</div><div class="l">Ubuntu-only</div></div>
+</div>
+
+<hr>
+
+<!-- ═══════ DISTRO PACKAGES ═══════ -->
+<h2 id="distro">Distro packages <span class="count">apt / dnf</span></h2>
+<p class="muted">Installed via the host package manager. Some add a third-party apt/dnf repo first.</p>
+
+<h3>Bootstrap system packages (setup.sh)</h3>
+<div class="grid">
+  <div class="card"><div class="name"><strong>Development Tools</strong><span class="pill good">installed</span></div><div class="meta">dnf group: dnf group install -y "Development Tools"</div><div class="note">Fedora only — apt side uses build-essential</div></div>
+  <div class="card"><div class="name"><strong>build-essential</strong><span class="pill good">installed</span></div><div class="meta">apt-get install -y build-essential</div><div class="note">Ubuntu/Debian only</div></div>
+  <div class="card"><div class="name"><strong>ca-certificates, curl, wget</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing</div></div>
+  <div class="card"><div class="name"><strong>gnupg2 / gnupg</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing</div><div class="note">For apt-key / rpm-key</div></div>
+  <div class="card"><div class="name"><strong>flatpak</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing</div><div class="note">Adds Flathub remote on first run</div></div>
+  <div class="card"><div class="name"><strong>unzip, fontconfig, xdg-user-dirs</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing</div></div>
+  <div class="card"><div class="name"><strong>xclip, wl-clipboard</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing</div><div class="note">Clipboard for X11 + Wayland</div></div>
+  <div class="card"><div class="name"><strong>util-linux-user, findutils, tar, gzip</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing</div><div class="note">Fedora only</div></div>
+  <div class="card"><div class="name"><strong>python3, python3-pip</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing</div></div>
+  <div class="card"><div class="name"><strong>software-properties-common</strong><span class="pill good">installed</span></div><div class="meta">apt-get install -y</div><div class="note">Ubuntu only — add-apt-repository</div></div>
+  <div class="card"><div class="name"><strong>kio-extras</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing</div><div class="note">Fedora only — KDE thumbnails</div></div>
+  <div class="card"><div class="name"><strong>timeshift</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing</div><div class="note">System snapshots</div></div>
+  <div class="card"><div class="name"><strong>v4l2loopback / v4l2loopback-utils</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing</div><div class="note">Virtual webcam kernel module</div></div>
+  <div class="card"><div class="name"><strong>gnome-sushi, folder-color-common</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing</div><div class="note">Ubuntu only — Nautilus previews + folder colors</div></div>
+  <div class="card"><div class="name"><strong>vlc</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing</div><div class="note">Ubuntu only</div></div>
+</div>
+
+<h3>Core CLI (tools/)</h3>
+<div class="grid">
+  <div class="card"><div class="name"><strong>zsh</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing zsh</div><div class="note">Set as default shell via chsh</div></div>
+  <div class="card"><div class="name"><strong>git</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing git</div></div>
+  <div class="card"><div class="name"><strong>tmux</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing tmux</div></div>
+  <div class="card"><div class="name"><strong>htop</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing htop</div></div>
+  <div class="card"><div class="name"><strong>jq</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing jq</div></div>
+  <div class="card"><div class="name"><strong>bat</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing bat</div><div class="note">Debian: symlink batcat → bat</div></div>
+  <div class="card"><div class="name"><strong>ripgrep</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing ripgrep</div></div>
+  <div class="card"><div class="name"><strong>fzf</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing fzf</div></div>
+  <div class="card"><div class="name"><strong>fd</strong><span class="pill good">installed</span></div><div class="meta">pkg_install_if_missing fd-find</div><div class="note">Debian: symlink fdfind → fd</div></div>
+</div>
+
+<h3>With added third-party repo</h3>
+<div class="grid">
+  <div class="card"><div class="name"><strong>gh</strong><span class="pill good">installed</span></div><div class="meta">cli.github.com repo → apt/dnf install gh</div><div class="note">GitHub CLI</div></div>
+  <div class="card"><div class="name"><strong>docker</strong><span class="pill good">installed</span></div><div class="meta">download.docker.com repo → docker-ce, docker-ce-cli, containerd.io, buildx, compose</div><div class="note">Engine + plugins</div></div>
+  <div class="card"><div class="name"><strong>google-chrome-stable</strong><span class="pill good">installed</span></div><div class="meta">Google repo → apt/dnf install google-chrome-stable</div><div class="note">Proprietary</div></div>
+  <div class="card"><div class="name"><strong>brave-browser</strong><span class="pill accent">ubuntu</span></div><div class="meta">brave-browser-apt-release repo → apt install brave-browser</div><div class="note">Fedora: Flatpak instead</div></div>
+  <div class="card"><div class="name"><strong>warp-terminal</strong><span class="pill accent">ubuntu</span></div><div class="meta">warpdotdev apt repo → apt install warp-terminal</div><div class="note">Ubuntu only — Fedora skipped</div></div>
+  <div class="card"><div class="name"><strong>antigravity</strong><span class="pill accent">ubuntu</span></div><div class="meta">us-central1-apt.pkg.dev repo → apt install antigravity</div><div class="note">Ubuntu only — Fedora skipped</div></div>
+</div>
+
+<h3>Downloaded .deb then apt-installed</h3>
+<div class="grid">
+  <div class="card"><div class="name"><strong>zoom</strong><span class="pill accent">ubuntu</span></div><div class="meta">curl zoom_amd64.deb → apt install /tmp/zoom_amd64.deb</div><div class="note">Fedora: Flatpak instead</div></div>
+</div>
+
+<h3>curl|sh → apt repo bootstrap</h3>
+<div class="grid">
+  <div class="card"><div class="name"><strong>voquill</strong><span class="pill accent">ubuntu</span></div><div class="meta">curl voquill.github.io/apt/install.sh | sudo bash</div><div class="note">Ubuntu only — Fedora skipped</div></div>
+</div>
+
+<hr>
+
+<!-- ═══════ APPIMAGE ═══════ -->
+<h2 id="appimage">AppImage <span class="count">~/AppImage</span></h2>
+<div class="grid">
+  <div class="card">
+    <div class="name"><strong>Obsidian</strong><span class="pill good">installed</span></div>
+    <div class="meta">~/AppImage/Obsidian-${version}.AppImage<br>symlink: ~/.local/bin/obsidian-app<br>desktop: ~/.local/share/applications/obsidian-appimage.desktop<br>registers x-scheme-handler/obsidian</div>
+    <div class="note">Knowledge base · CLI must be enabled inside the app (Settings → General)</div>
+  </div>
+</div>
+
+<hr>
+
+<!-- ═══════ GITHUB RELEASE ═══════ -->
+<h2 id="ghrelease">GitHub release binary <span class="count">tarball / deb</span></h2>
+<div class="grid">
+  <div class="card"><div class="name"><strong>codeql</strong><span class="pill good">installed</span></div><div class="meta">~/.local/codeql/codeql + symlink ~/.local/bin/codeql</div><div class="note">x86_64 only — aarch64 warns and exits 0</div></div>
+  <div class="card"><div class="name"><strong>lazygit</strong><span class="pill good">installed</span></div><div class="meta">/usr/local/bin/lazygit (github_release_install)</div></div>
+  <div class="card"><div class="name"><strong>lazydocker</strong><span class="pill good">installed</span></div><div class="meta">/usr/local/bin/lazydocker (github_release_install)</div></div>
+  <div class="card"><div class="name"><strong>eza</strong><span class="pill warn">fallback</span></div><div class="meta">/usr/local/bin/eza (github_release_install)</div><div class="note">Only if distro pkg unavailable</div></div>
+  <div class="card"><div class="name"><strong>delta</strong><span class="pill warn">fallback</span></div><div class="meta">/usr/local/bin/delta (github_release_install)</div><div class="note">Only if distro pkg unavailable; Ubuntu also tries .deb</div></div>
+</div>
+
+<hr>
+
+<!-- ═══════ FLATPAK ═══════ -->
+<h2 id="flatpak">Flatpak <span class="count">Flathub</span></h2>
+<div class="grid">
+  <div class="card"><div class="name"><strong>Flameshot</strong><span class="pill good">installed</span></div><div class="meta">org.flameshot.Flameshot</div><div class="note">Print Screen → flameshot gui via gsettings/dconf</div></div>
+  <div class="card"><div class="name"><strong>EasyEffects</strong><span class="pill good">installed</span></div><div class="meta">com.github.wwmm.easyeffects</div></div>
+  <div class="card"><div class="name"><strong>OBS Studio</strong><span class="pill good">installed</span></div><div class="meta">com.obsproject.Studio</div><div class="note">Recording / streaming</div></div>
+  <div class="card"><div class="name"><strong>Telegram Desktop</strong><span class="pill good">installed</span></div><div class="meta">org.telegram.desktop</div></div>
+  <div class="card"><div class="name"><strong>Audacity</strong><span class="pill good">installed</span></div><div class="meta">org.audacityteam.Audacity</div></div>
+  <div class="card"><div class="name"><strong>GIMP</strong><span class="pill good">installed</span></div><div class="meta">org.gimp.GIMP</div></div>
+  <div class="card"><div class="name"><strong>Bitwarden</strong><span class="pill good">installed</span></div><div class="meta">com.bitwarden.desktop</div></div>
+  <div class="card"><div class="name"><strong>Discord</strong><span class="pill good">installed</span></div><div class="meta">com.discordapp.Discord</div></div>
+  <div class="card"><div class="name"><strong>Brave</strong><span class="pill accent">fedora</span></div><div class="meta">com.brave.Browser</div><div class="note">Fedora only — Ubuntu uses apt</div></div>
+  <div class="card"><div class="name"><strong>Zoom</strong><span class="pill accent">fedora</span></div><div class="meta">us.zoom.Zoom</div><div class="note">Fedora only — Ubuntu uses .deb</div></div>
+</div>
+
+<hr>
+
+<!-- ═══════ UV TOOL ═══════ -->
+<h2 id="uv">uv tool install <span class="count">Python CLIs</span></h2>
+<div class="grid">
+  <div class="card"><div class="name"><strong>semgrep</strong><span class="pill good">installed</span></div><div class="meta">uv tool install semgrep</div><div class="note">Static analysis (SAST)</div></div>
+</div>
+
+<hr>
+
+<!-- ═══════ UVX WRAPPER ═══════ -->
+<h2 id="uvx">uvx wrapper <span class="count">~/.local/bin</span></h2>
+<div class="grid">
+  <div class="card">
+    <div class="name"><strong>snyk-agent-scan-safe</strong><span class="pill good">installed</span></div>
+    <div class="meta">~/.local/bin/snyk-agent-scan-safe → exec uvx snyk-agent-scan@latest "$@"</div>
+    <div class="note">Warns before exec (MCP/tool configs can run commands). Set SNYK_TOKEN before use.</div>
+  </div>
+</div>
+
+<hr>
+
+<!-- ═══════ BREW ═══════ -->
+<h2 id="brew">Homebrew <span class="count">Linuxbrew</span></h2>
+<div class="grid">
+  <div class="card"><div class="name"><strong>homebrew</strong><span class="pill good">installed</span></div><div class="meta">/home/linuxbrew/.linuxbrew/bin/brew</div><div class="note">NONINTERACTIVE=1 curl|bash install · eval "$(brew shellenv)"</div></div>
+</div>
+
+<hr>
+
+<!-- ═══════ CURL | SH ═══════ -->
+<h2 id="curl">curl | sh official installer</h2>
+<div class="grid">
+  <div class="card"><div class="name"><strong>uv</strong><span class="pill good">installed</span></div><div class="meta">~/.local/bin/uv (or ~/.cargo/bin/uv)</div><div class="note">astral.sh/uv/install.sh</div></div>
+  <div class="card"><div class="name"><strong>bun</strong><span class="pill good">installed</span></div><div class="meta">~/.bun/bin/bun</div><div class="note">bun.sh/install.sh · used as default installer for global CLIs</div></div>
+  <div class="card"><div class="name"><strong>starship</strong><span class="pill good">installed</span></div><div class="meta">/usr/local/bin/starship + config ~/.config/starship.toml</div><div class="note">starship.rs/install.sh -y</div></div>
+  <div class="card"><div class="name"><strong>tailscale</strong><span class="pill good">installed</span></div><div class="meta">tailscale.com/install.sh</div><div class="note">Mesh VPN daemon</div></div>
+  <div class="card"><div class="name"><strong>oh-my-zsh</strong><span class="pill good">installed</span></div><div class="meta">~/.oh-my-zsh/</div><div class="note">raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh "" --unattended</div></div>
+  <div class="card"><div class="name"><strong>rustup</strong><span class="pill good">installed</span></div><div class="meta">~/.cargo/{bin,env}</div><div class="note">sh.rustup.rs -y · Rust toolchain</div></div>
+  <div class="card"><div class="name"><strong>zoxide</strong><span class="pill warn">fallback</span></div><div class="meta">curl raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh</div><div class="note">Only if distro pkg unavailable</div></div>
+</div>
+
+<hr>
+
+<!-- ═══════ NVM / NODE ═══════ -->
+<h2 id="nvm">nvm + Node.js LTS</h2>
+<div class="grid">
+  <div class="card"><div class="name"><strong>nvm</strong><span class="pill good">installed</span></div><div class="meta">~/.nvm/ (git clone, latest tag checkout)</div><div class="note">Node Version Manager</div></div>
+  <div class="card"><div class="name"><strong>nodejs (LTS)</strong><span class="pill good">installed</span></div><div class="meta">~/.nvm/versions/node/v*/bin/node</div><div class="note">nvm install --lts · nvm alias default lts/*</div></div>
+</div>
+
+<hr>
+
+<!-- ═══════ NPM / BUN GLOBAL ═══════ -->
+<h2 id="npm">npm / bun global <span class="count">-g</span></h2>
+<p class="muted">Installed with <code>bun install -g</code> when bun is present, falls back to <code>npm install -g</code>.</p>
+
+<h3>Node CLIs (tools/install-all.sh)</h3>
+<div class="grid">
+  <div class="card"><div class="name"><strong>opencode</strong><span class="pill good">installed</span></div><div class="meta">bun install -g opencode-ai</div><div class="note">AI coding agent CLI</div></div>
+  <div class="card"><div class="name"><strong>codex</strong><span class="pill good">installed</span></div><div class="meta">bun install -g @openai/codex</div><div class="note">OpenAI Codex CLI</div></div>
+  <div class="card"><div class="name"><strong>kilo-cli</strong><span class="pill good">installed</span></div><div class="meta">bun install -g kilocode</div><div class="note">Kilo Code CLI</div></div>
+  <div class="card"><div class="name"><strong>vercel-cli</strong><span class="pill good">installed</span></div><div class="meta">bun install -g vercel</div></div>
+  <div class="card"><div class="name"><strong>context-hub</strong><span class="pill good">installed</span></div><div class="meta">bun install -g @aisuite/chub</div><div class="note">Context Hub</div></div>
+  <div class="card"><div class="name"><strong>claude-code</strong><span class="pill good">installed</span></div><div class="meta">bun install -g @anthropic-ai/claude-code</div><div class="note">Anthropic Claude Code CLI</div></div>
+</div>
+
+<h3>Agentic tools (installers/agent-tools.sh)</h3>
+<div class="grid">
+  <div class="card"><div class="name"><strong>ctx7</strong><span class="pill good">installed</span></div><div class="meta">bun install -g ctx7</div><div class="note">Context7 docs CLI · also runs <code>ctx7 setup</code></div></div>
+  <div class="card"><div class="name"><strong>chub</strong><span class="pill good">installed</span></div><div class="meta">bun install -g @aisuite/chub</div><div class="note">Context Hub</div></div>
+  <div class="card"><div class="name"><strong>omx</strong><span class="pill good">installed</span></div><div class="meta">bun install -g oh-my-codex@latest</div><div class="note">Oh My Codex plugin set</div></div>
+  <div class="card"><div class="name"><strong>omc / sisyphus</strong><span class="pill good">installed</span></div><div class="meta">bun install -g oh-my-claude-sisyphus@latest</div><div class="note">Oh My Claude Sisyphus · verified as <code>sisyphus</code> in PATH</div></div>
+</div>
+
+<hr>
+
+<!-- ═══════ GIT CLONE ═══════ -->
+<h2 id="gitclone">git clone <span class="count">repos</span></h2>
+<h3>zsh plugins (installers/oh-my-zsh.sh)</h3>
+<div class="grid">
+  <div class="card"><div class="name"><strong>zsh-syntax-highlighting</strong><span class="pill good">installed</span></div><div class="meta">$ZSH_CUSTOM/plugins/zsh-syntax-highlighting</div><div class="note">zsh-users/zsh-syntax-highlighting</div></div>
+  <div class="card"><div class="name"><strong>zsh-autosuggestions</strong><span class="pill good">installed</span></div><div class="meta">$ZSH_CUSTOM/plugins/zsh-autosuggestions</div><div class="note">zsh-users/zsh-autosuggestions</div></div>
+</div>
+
+<h3>Security-lab MCP repos (~/hacking/tools/)</h3>
+<div class="grid">
+  <div class="card"><div class="name"><strong>ghidra-mcp</strong><span class="pill good">cloned</span></div><div class="meta">~/hacking/tools/ghidra-mcp</div><div class="note">bethington/ghidra-mcp</div></div>
+  <div class="card"><div class="name"><strong>aflpp-mcp</strong><span class="pill good">cloned</span></div><div class="meta">~/hacking/tools/aflpp-mcp</div><div class="note">kevin-valerio/aflpp-mcp · built with bun/npm when Node available</div></div>
+  <div class="card"><div class="name"><strong>oss-fuzz-gen</strong><span class="pill good">cloned</span></div><div class="meta">~/hacking/tools/oss-fuzz-gen</div><div class="note">google/oss-fuzz-gen</div></div>
+</div>
+
+<hr>
+
+<!-- ═══════ DOCKER WRAPPER ═══════ -->
+<h2 id="docker">Docker image + wrapper <span class="count">~/.local/bin</span></h2>
+<p class="muted">Both wrappers default to <code>--network=lab-none</code> (no egress). Set <code>LAB_RELAXED=1</code> to opt in to host network.</p>
+<div class="grid">
+  <div class="card">
+    <div class="name"><strong>nuclei-docker</strong><span class="pill good">installed</span></div>
+    <div class="meta">~/.local/bin/nuclei-docker<br>image: projectdiscovery/nuclei:latest<br>mount: $PWD → /work</div>
+    <div class="note">Template-based scanner · read-only, --cap-drop=ALL</div>
+  </div>
+  <div class="card">
+    <div class="name"><strong>aflpp-docker</strong><span class="pill good">installed</span></div>
+    <div class="meta">~/.local/bin/aflpp-docker<br>image: aflplusplus/aflplusplus:latest<br>mount: $PWD → /src</div>
+    <div class="note">Coverage-guided fuzzer · read-only, --cap-drop=ALL</div>
+  </div>
+  <div class="card">
+    <div class="name"><strong>lab-none network</strong><span class="pill good">installed</span></div>
+    <div class="meta">docker network create --internal lab-none</div>
+    <div class="note">Isolated Docker network with no egress · idempotent</div>
+  </div>
+</div>
+
+<hr>
+
+<!-- ═══════ IDE EXTENSIONS ═══════ -->
+<h2 id="ide">IDE extensions <span class="count">Antigravity / VS Code</span></h2>
+<p class="muted">Installed via <code>configs/ide-extensions.sh</code> using the IDE's <code>--install-extension</code> flag.</p>
+<div class="grid">
+  <div class="card"><div class="name"><strong>github.vscode-github-actions</strong><span class="pill good">installed</span></div></div>
+  <div class="card"><div class="name"><strong>mechatroner.rainbow-csv</strong><span class="pill good">installed</span></div></div>
+  <div class="card"><div class="name"><strong>ms-azuretools.vscode-containers</strong><span class="pill good">installed</span></div></div>
+  <div class="card"><div class="name"><strong>ms-azuretools.vscode-docker</strong><span class="pill good">installed</span></div></div>
+  <div class="card"><div class="name"><strong>ms-python.debugpy</strong><span class="pill good">installed</span></div></div>
+  <div class="card"><div class="name"><strong>ms-python.python</strong><span class="pill good">installed</span></div></div>
+  <div class="card"><div class="name"><strong>ms-python.vscode-python-envs</strong><span class="pill good">installed</span></div></div>
+  <div class="card"><div class="name"><strong>ms-vscode.makefile-tools</strong><span class="pill good">installed</span></div></div>
+  <div class="card"><div class="name"><strong>nomicfoundation.hardhat-solidity</strong><span class="pill good">installed</span></div></div>
+  <div class="card"><div class="name"><strong>pkief.material-icon-theme</strong><span class="pill good">installed</span></div></div>
+  <div class="card"><div class="name"><strong>adpyke.codesnap</strong><span class="pill good">installed</span></div></div>
+  <div class="card"><div class="name"><strong>meta.pyrefly</strong><span class="pill good">installed</span></div></div>
+  <div class="card"><div class="name"><strong>qwtel.sqlite-viewer</strong><span class="pill good">installed</span></div></div>
+  <div class="card"><div class="name"><strong>tomoki1207.pdf</strong><span class="pill good">installed</span></div></div>
+  <div class="card"><div class="name"><strong>zhuangtongfa.material-theme</strong><span class="pill good">installed</span></div></div>
+</div>
+
+<hr>
+
+<!-- ═══════ BROWSER EXTENSIONS ═══════ -->
+<h2 id="browser">Browser extensions <span class="count">policy.json</span></h2>
+<p class="muted">Deployed via Chrome/Brave managed policies (<code>normal_installed</code> — user can uninstall).</p>
+
+<h3>Brave (11 extensions)</h3>
+<div class="grid">
+  <div class="card"><div class="name"><strong>uBlock Origin</strong><span class="pill good">installed</span></div><div class="meta">cjpalhdlnbpafiamejdnhcphjbkeiagm</div></div>
+  <div class="card"><div class="name"><strong>Bitwarden</strong><span class="pill good">installed</span></div><div class="meta">nngceckbapebfimnlniiiahkandclblb</div></div>
+  <div class="card"><div class="name"><strong>Grammarly</strong><span class="pill good">installed</span></div><div class="meta">kbfnbcaeplbcioakkpcpgfkobkghlhen</div></div>
+  <div class="card"><div class="name"><strong>React Developer Tools</strong><span class="pill good">installed</span></div><div class="meta">fmkadmapgofadopljbjfkapdkoienihi</div></div>
+  <div class="card"><div class="name"><strong>MetaMask</strong><span class="pill good">installed</span></div><div class="meta">nkbihfbeogaeaoehlefnkodbefgpgknn</div></div>
+  <div class="card"><div class="name"><strong>StayFree</strong><span class="pill good">installed</span></div><div class="meta">elfaihghhjjoknimpccccmkioofjjfkf</div></div>
+  <div class="card"><div class="name"><strong>Unhook (YouTube)</strong><span class="pill good">installed</span></div><div class="meta">khncfooichmfjbepaaaebmommgaepoid</div></div>
+  <div class="card"><div class="name"><strong>ColorZilla</strong><span class="pill good">installed</span></div><div class="meta">bhlhnicpbhignbdhedgjhgdocnmhomnp</div></div>
+  <div class="card"><div class="name"><strong>LeechBlock NG</strong><span class="pill good">installed</span></div><div class="meta">blaaajhemilngeeffpbfkdjjoefldkok</div></div>
+  <div class="card"><div class="name"><strong>Méliuz</strong><span class="pill good">installed</span></div><div class="meta">jdcfmebflppkljibgpdlboifpcaalolg</div></div>
+  <div class="card"><div class="name"><strong>Meet Transcribe</strong><span class="pill good">installed</span></div><div class="meta">lknmjhcajhfbbglglccadlfdjbaiifig</div></div>
+</div>
+
+<h3>Chrome (2 extensions)</h3>
+<div class="grid">
+  <div class="card"><div class="name"><strong>Antigravity</strong><span class="pill good">installed</span></div><div class="meta">eeijfnjmjelapkebgockoeaadonbchdd</div></div>
+  <div class="card"><div class="name"><strong>Claude</strong><span class="pill good">installed</span></div><div class="meta">fcoeoabgfenejglbffodgkkbkcdhcgfn</div></div>
+</div>
+
+<hr>
+
+<!-- ═══════ MANUAL ═══════ -->
+<h2 id="manual">Manual / not auto-installed <span class="pill warn">user installs</span></h2>
+<p class="muted">The setup script creates the directory, prints a hint, and asks the user to install the app themselves.</p>
+<div class="grid">
+  <div class="card">
+    <div class="name"><strong>Caido</strong><span class="pill warn">manual</span></div>
+    <div class="meta">~/hacking/proxy/caido/</div>
+    <div class="note">Install from caido.io · script does not silently add extensions, tokens, or licenses</div>
+  </div>
+  <div class="card">
+    <div class="name"><strong>Burp Suite</strong><span class="pill warn">manual</span></div>
+    <div class="meta">~/hacking/proxy/burp/</div>
+    <div class="note">Install Community/Pro from PortSwigger · same caveats as Caido</div>
+  </div>
+  <div class="card">
+    <div class="name"><strong>Ghidra</strong><span class="pill warn">manual</span></div>
+    <div class="meta">~/.local/ghidra/ (expected) · symlinked as ~/.local/bin/ghidraRun</div>
+    <div class="note">Also installs openjdk-21 + maven via distro pkg. Set <code>GHIDRA_HOME</code> to override launcher search.</div>
+  </div>
+  <div class="card">
+    <div class="name"><strong>StayFree (browser)</strong><span class="pill warn">manual</span></div>
+    <div class="meta">Chrome Web Store / Firefox addons</div>
+    <div class="note">Script just prints URLs · also deployed as Brave policy above</div>
+  </div>
+  <div class="card">
+    <div class="name"><strong>Obsidian CLI</strong><span class="pill warn">manual</span></div>
+    <div class="meta">Settings → General → "Obsidian command-line interface"</div>
+    <div class="note">GUI toggle inside Obsidian itself; the <code>obsidian-app</code> binary on PATH only works after enabling it</div>
+  </div>
+</div>
+
+<hr>
+
+<!-- ═══════ CONFIG-ONLY ═══════ -->
+<h2 id="config">Config-only helpers <span class="pill gray">no app install</span></h2>
+<p class="muted">These run as part of <code>setup.sh</code> but do not install a new application — they configure existing system / app behavior.</p>
+<div class="grid">
+  <div class="card"><div class="name"><strong>firewall</strong><span class="pill gray">config</span></div><div class="meta">configs/firewall.sh</div><div class="note">Enables ufw / firewalld rules</div></div>
+  <div class="card"><div class="name"><strong>clamav</strong><span class="pill gray">config</span></div><div class="meta">configs/clamav.sh</div><div class="note">Antivirus daemon + scan paths</div></div>
+  <div class="card"><div class="name"><strong>dns-nextdns</strong><span class="pill gray">config</span></div><div class="meta">configs/dns-nextdns.sh</div><div class="note">Points system resolver at NextDNS</div></div>
+  <div class="card"><div class="name"><strong>focus-mode</strong><span class="pill gray">config</span></div><div class="meta">configs/focus-mode.sh</div><div class="note">Distraction-blocking profile</div></div>
+  <div class="card"><div class="name"><strong>npm-security</strong><span class="pill gray">config</span></div><div class="meta">configs/npm-security.sh</div><div class="note">npm config hardening</div></div>
+  <div class="card"><div class="name"><strong>unattended-upgrades</strong><span class="pill gray">config</span></div><div class="meta">configs/unattended-upgrades.sh</div><div class="note">Auto security updates</div></div>
+  <div class="card"><div class="name"><strong>startup-apps</strong><span class="pill gray">config</span></div><div class="meta">configs/startup-apps.sh</div><div class="note">Autostart entries</div></div>
+  <div class="card"><div class="name"><strong>obsidian-vault</strong><span class="pill gray">config</span></div><div class="meta">configs/obsidian-vault.sh</div><div class="note">Restores vault from backup</div></div>
+  <div class="card"><div class="name"><strong>sync-skills / centralize-skills</strong><span class="pill gray">config</span></div><div class="meta">configs/{sync,centralize}-skills.sh</div><div class="note">Syncs local skills directory</div></div>
+  <div class="card"><div class="name"><strong>restore-configs</strong><span class="pill gray">config</span></div><div class="meta">configs/restore-configs.sh</div><div class="note">Drops .bashrc, .zshrc, .gitconfig, starship.toml</div></div>
+  <div class="card"><div class="name"><strong>defaults</strong><span class="pill gray">config</span></div><div class="meta">configs/defaults.sh</div><div class="note">Default apps + wallpaper</div></div>
+  <div class="card"><div class="name"><strong>lab-mcp-consent</strong><span class="pill gray">config</span></div><div class="meta">configs/lab-mcp-consent.sh</div><div class="note">One-shot prompt to register MCP servers · TTY-only · prints <code>codex mcp add …</code> for the user to run themselves (does not auto-register)</div></div>
+  <div class="card"><div class="name"><strong>summary</strong><span class="pill gray">config</span></div><div class="meta">configs/summary.sh</div><div class="note">Post-setup report</div></div>
+  <div class="card"><div class="name"><strong>JetBrains Mono Nerd Font</strong><span class="pill gray">config</span></div><div class="meta">~/.local/share/fonts/JetBrainsMono*.ttf + fc-cache -f</div><div class="note">Set in GNOME Terminal / Alacritty / COSMIC configs</div></div>
+</div>
+
+<hr>
+
+<!-- ═══════ PLANNED ═══════ -->
+<h2 id="planned">Planned <span class="pill info">from docs/security-lab-plan.html</span></h2>
+<p class="muted">Not installed today. Listed in the security-lab plan as Phase 2 additions.</p>
+<div class="grid">
+  <div class="card"><div class="name"><strong>gitleaks</strong><span class="pill info">planned</span></div><div class="meta">tools/gitleaks.sh (proposed) — github_release_install</div><div class="note">Secret scanning · passive, no wrapper</div></div>
+  <div class="card"><div class="name"><strong>trivy</strong><span class="pill info">planned</span></div><div class="meta">tools/trivy.sh (proposed)</div><div class="note">SCA / SBOM / IaC scanning · preferred over Snyk for personal/CI use</div></div>
+  <div class="card"><div class="name"><strong>pre-commit</strong><span class="pill info">planned</span></div><div class="meta">tools/pre-commit.sh (proposed) — uv tool install pre-commit + security.yaml template</div><div class="note">Hooks: gitleaks + shellcheck + ruff</div></div>
+</div>
+
+<footer>
+  Generated from <code>setup.sh</code>, <code>tools/install-all.sh</code>, <code>installers/install-all.sh</code>,
+  <code>installers/agent-tools.sh</code>, <code>configs/*.sh</code>, <code>tools/*.sh</code>, and the docs in <code>docs/</code>.
+  Re-run this inventory if any of those scripts change.
+</footer>
+
+</body>
+</html>

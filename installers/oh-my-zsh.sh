@@ -6,7 +6,7 @@ source "$SCRIPT_DIR/../lib/helpers.sh"
 
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
   require_cmd zsh
-  log "Installing Oh My Zsh..."
+  log "Installing Oh My Zsh (latest from master)..."
   sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
   log "Oh My Zsh installed."
 else
@@ -18,14 +18,14 @@ ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 mkdir -p "$ZSH_CUSTOM/plugins"
 
 if [ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]; then
-  log "Installing ZSH Syntax Highlighting..."
+  log "Installing ZSH Syntax Highlighting (latest)..."
   git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
 else
   log "ZSH Syntax Highlighting is already installed."
 fi
 
 if [ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]; then
-  log "Installing ZSH Auto Suggestions..."
+  log "Installing ZSH Auto Suggestions (latest)..."
   git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
 else
   log "ZSH Auto Suggestions is already installed."

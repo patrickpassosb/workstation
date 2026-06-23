@@ -121,13 +121,17 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 # export GITHUB_MCP_PAT=<YOUR_TOKEN_HERE>  # Set this after cloning
 
-. "$HOME/.local/bin/env"
+[ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
 
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)"
+if [ -x "$HOME/.linuxbrew/bin/brew" ]; then
+  eval "$("$HOME/.linuxbrew/bin/brew" shellenv bash)"
+elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)"
+fi
 
 # OpenClaw Completion
-source "/home/patrick/.openclaw/completions/openclaw.bash"
-. "$HOME/.cargo/env"
+[ -f "$HOME/.openclaw/completions/openclaw.bash" ] && source "$HOME/.openclaw/completions/openclaw.bash"
+[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
 
 # Modern CLI replacements (installed by workstation setup)
 # bat → cat with syntax highlighting

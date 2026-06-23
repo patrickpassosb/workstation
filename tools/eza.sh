@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION=v0.21.3
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/helpers.sh"
 
@@ -11,8 +10,8 @@ else
   if pkg_available eza; then
     pkg_install_if_missing eza
   else
-    # Fall back to GitHub release
-    log "eza not in distro repos — installing from GitHub release..."
+    # Fall back to GitHub release (always latest)
+    log "eza not in distro repos — installing latest from GitHub release..."
     tag=""
     tag="$(github_latest_tag 'eza-community/eza')"
     version="${tag#v}"

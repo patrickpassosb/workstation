@@ -9,7 +9,7 @@ if [ -d "$HOME/.nvm" ]; then
   exit 0
 fi
 
-log "Installing NVM..."
+log "Installing NVM (latest tag)..."
 git clone https://github.com/nvm-sh/nvm.git "$HOME/.nvm"
 
 # Checkout the latest tag
