@@ -5,11 +5,11 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/helpers.sh"
 
 log "═══════════════════════════════════════════════════════"
-log "  IDE Extensions (Antigravity)"
+log "  IDE Extensions (VS Code)"
 log "═══════════════════════════════════════════════════════"
 
-# ── Shared extensions (installed in both IDEs) ───────────────────────
-SHARED_EXTENSIONS=(
+# ── Extensions ────────────────────────────────────────────────────────
+EXTENSIONS=(
   "github.vscode-github-actions"
   "mechatroner.rainbow-csv"
   "ms-azuretools.vscode-containers"
@@ -26,9 +26,6 @@ SHARED_EXTENSIONS=(
   "tomoki1207.pdf"
   "zhuangtongfa.material-theme"
 )
-
-# ── Antigravity-only extensions ──────────────────────────────────────
-ANTIGRAVITY_ONLY=()
 
 # ── Installer ────────────────────────────────────────────────────────
 install_extensions() {
@@ -59,13 +56,11 @@ if [[ "$(id -u)" -eq 0 ]]; then
   exit 0
 fi
 
-# ── Antigravity ──────────────────────────────────────────────────────
-if is_installed antigravity; then
+if is_installed code; then
   log ""
-  log "── Antigravity ───────────────────────────────────────"
-  ANTIGRAVITY_ALL=("${SHARED_EXTENSIONS[@]}" "${ANTIGRAVITY_ONLY[@]}")
-  install_extensions antigravity "Antigravity" "${ANTIGRAVITY_ALL[@]}"
-  log "Antigravity: ${#ANTIGRAVITY_ALL[@]} extensions"
+  log "── VS Code ──────────────────────────────────────────"
+  install_extensions code "VS Code" "${EXTENSIONS[@]}"
+  log "VS Code: ${#EXTENSIONS[@]} extensions"
 else
-  warn "Antigravity not installed — skipping"
+  warn "VS Code (code) not installed — skipping"
 fi

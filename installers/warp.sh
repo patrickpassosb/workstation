@@ -9,25 +9,36 @@ if is_installed warp-terminal; then
   exit 0
 fi
 
+case "$(uname -m)" in
+  x86_64)  arch=""        ;;  # default (no suffix)
+  aarch64) arch="_arm64"  ;;
+  *)
+    err "Unsupported architecture for Warp: $(uname -m)"
+    exit 1
+    ;;
+esac
+
 if is_fedora_like; then
-  skip_unsupported_distro "Warp terminal"
-  exit 0
+  pkg="rpm${arch}"
+else
+  pkg="deb${arch}"
 fi
 
-log "Installing Warp terminal..."
+url="https://app.warp.dev/get_warp?package=${pkg}"
+tmp="$(mktemp --suffix=".${pkg:0:3}")"
+trap 'rm -f "$tmp"' EXIT
 
-# Warp's key is ASCII-armored (.asc) and needs dearmoring
-sudo install -d -m 0755 /etc/apt/keyrings
-curl -fsSL https://releases.warp.dev/linux/keys/warp.asc \
-  | sudo gpg --dearmor --yes -o /etc/apt/keyrings/warpdotdev.gpg
+log "Downloading Warp (.${pkg}) from $url"
+curl -fL "$url" -o "$tmp" || {
+  err "Warp download failed"
+  exit 1
+}
 
-echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/warpdotdev.gpg] https://releases.warp.dev/linux/deb stable main" \
-  | sudo tee /etc/apt/sources.list.d/warpdotdev.list >/dev/null
-
-# Remove old source file if it exists
-sudo rm -f /etc/apt/sources.list.d/warp.list
-
-sudo apt-get update -y
-sudo apt-get install -y warp-terminal
+log "Installing Warp..."
+if is_fedora_like; then
+  sudo dnf install -y "$tmp"
+else
+  sudo apt-get install -y "$tmp"
+fi
 
 log "Warp terminal installed."

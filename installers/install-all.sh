@@ -34,7 +34,8 @@ INSTALLER_SCRIPTS=(
   zoom
   discord
   voquill
-  antigravity
+  antigravity-cli
+  trae
   stayfree
 )
 

@@ -85,12 +85,12 @@ workstation/
 │   ├── install-all.sh
 │   ├── agent-tools.sh             # ctx7, chub, omx, omc (bun install -g)
 │   ├── rustup.sh, nvm.sh, oh-my-zsh.sh, homebrew.sh
-│   └── brave.sh, chrome.sh, warp.sh, zoom.sh, discord.sh, voquill.sh, antigravity.sh, stayfree.sh
+│   └── brave.sh, chrome.sh, warp.sh, zoom.sh, discord.sh, voquill.sh, antigravity-cli.sh, trae.sh, stayfree.sh
 ├── configs/                       # dotfiles + system hardening + defaults
 │   ├── zshrc, bashrc, gitconfig, starship.toml
 │   ├── restore-configs.sh
 │   ├── defaults.sh                # default browser, dark mode, wallpaper
-│   ├── ide-extensions.sh          # Antigravity extension set
+│   ├── ide-extensions.sh          # VS Code extension set
 │   ├── browser-extensions.sh      # Brave / Chrome managed extension policy
 │   ├── startup-apps.sh            # autostart .desktop files
 │   ├── obsidian-vault.sh          # clones & registers the Obsidian vault
@@ -145,7 +145,6 @@ See `docs/security-lab.md` for the quick operator notes.
 |----------|---------|-------------|
 | `SRC_DIR` | `~/src` | Where source repos are cloned (unused on this branch — kept for helper compatibility) |
 | `INSTALL_PREFIX` | `/usr/local` | Install target for GitHub-release binaries |
-| `ANTIGRAVITY_DEB_URL` | *(empty)* | Direct .deb URL for Antigravity |
 | `WORKSTATION_DISTRO_OVERRIDE` | *(empty)* | Optional test override: `ubuntu` or `fedora` |
 | `OBSIDIAN_VAULT_REPO` | `https://github.com/patrickpassosb/obsidian-vault.git` | Vault repo to clone/update |
 | `OBSIDIAN_VAULT_DIR` | `~/Documents/Obsidian Vault` | Local Obsidian vault path |
@@ -166,7 +165,7 @@ See `docs/security-lab.md` for the quick operator notes.
 ## Fedora notes
 
 - Fedora uses `dnf`, `firewalld`, and `dnf-automatic` instead of `apt`, UFW, and unattended-upgrades.
-- Fedora proprietary apps prefer Flatpak where practical. Apt-only installers such as Antigravity, Voquill, and Warp warn and skip on Fedora.
+- Fedora proprietary apps prefer Flatpak or direct .rpm where the vendor publishes one (Brave, Zoom, Warp, Voquill, Trae, Antigravity CLI). Only configs that touch apt sources (e.g. `fix-sources.sh`) remain apt-only.
 - KDE dark mode and wallpaper are applied through Plasma command-line tools when they are available. Flameshot's Print Screen shortcut still needs a manual KDE shortcut binding if the script warns.
 
 ## After setup

@@ -7,7 +7,6 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/helpers.sh"
 
 CENTRAL_DIR="$HOME/.agents/skills"
-ANTIGRAVITY_CONFIG="$HOME/.gemini/antigravity/skills.txt"
 
 log "═══════════════════════════════════════════════════════"
 log "  Agent Skills Centralization"
@@ -50,16 +49,32 @@ else
     warn "  ✗ Context7 skill not found at: $CONTEXT7_SKILL"
 fi
 
-# 4. Register path in Antigravity configuration
-log "Updating Antigravity skills registration..."
-mkdir -p "$(dirname "$ANTIGRAVITY_CONFIG")"
-touch "$ANTIGRAVITY_CONFIG"
+# 4. Register each central skill as a symlink inside Trae IDE's skills dir.
+# Trae scans ~/.trae/skills/ for skill subdirs; symlinking each central skill
+# makes the whole central pool visible to Trae without copying.
+TRAE_SKILLS_DIR="$HOME/.trae/skills"
+log "Registering central skills with Trae IDE ($TRAE_SKILLS_DIR)..."
+mkdir -p "$TRAE_SKILLS_DIR"
 
-if ! grep -qF "$CENTRAL_DIR" "$ANTIGRAVITY_CONFIG"; then
-    echo "$CENTRAL_DIR" >> "$ANTIGRAVITY_CONFIG"
-    log "  ✓ Added $CENTRAL_DIR to $ANTIGRAVITY_CONFIG"
-else
-    log "  ✓ $CENTRAL_DIR already registered"
-fi
+added=0
+already=0
+conflict=0
+for skill_dir in "$CENTRAL_DIR"/*/; do
+    [[ -d "$skill_dir" ]] || continue
+    skill_name="$(basename "$skill_dir")"
+    target="$TRAE_SKILLS_DIR/$skill_name"
+    if [[ -L "$target" ]]; then
+        log "  ✓ $skill_name (already symlinked)"
+        already=$((already + 1))
+    elif [[ -e "$target" ]]; then
+        warn "  ⚠ $skill_name already exists as a real file/dir — not overwriting"
+        conflict=$((conflict + 1))
+    else
+        ln -s "$skill_dir" "$target"
+        log "  ✓ $skill_name (symlinked)"
+        added=$((added + 1))
+    fi
+done
+log "Trae: $added added, $already already linked, $conflict conflicts left for manual review"
 
 log "Skills centralization complete."
