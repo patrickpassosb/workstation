@@ -77,6 +77,10 @@ SEOF
     shortcut_set=true
   fi
 
+  if [[ "${XDG_CURRENT_DESKTOP:-}" == *"KDE"* ]] || command -v kwriteconfig6 >/dev/null 2>&1 || command -v kwriteconfig5 >/dev/null 2>&1; then
+    warn "KDE detected. Bind Print Screen to '$flameshot_cmd' in System Settings -> Shortcuts."
+  fi
+
   if [[ "$shortcut_set" == "false" ]]; then
     warn "Could not configure Flameshot shortcut — unsupported desktop"
   fi
@@ -113,8 +117,15 @@ fi
 log "Internet connectivity OK"
 
 require_cmd sudo
-require_cmd apt-get
 require_cmd curl
+case "$(pkg_manager)" in
+  apt) require_cmd apt-get ;;
+  dnf) require_cmd dnf ;;
+  *)
+    err "Unsupported Linux distribution: $(distro_id)"
+    exit 1
+    ;;
+esac
 
 # ══════════════════════════════════════════════════════════════════════
 # Bootstrap
@@ -125,15 +136,25 @@ log "  Bootstrap"
 log "═══════════════════════════════════════════════════════"
 
 log "Refreshing package index"
-sudo apt-get update -y
+pkg_update
 
-for pkg in build-essential ca-certificates curl wget gnupg software-properties-common flatpak unzip; do
-  apt_install_if_missing "$pkg" || true
-done
+if is_fedora_like; then
+  sudo dnf group install -y "Development Tools" || warn "Fedora Development Tools group install failed"
+  for pkg in ca-certificates curl wget gnupg2 flatpak unzip fontconfig xdg-user-dirs xclip wl-clipboard util-linux-user findutils tar gzip python3 python3-pip; do
+    pkg_install_if_missing "$pkg" || true
+  done
+  for pkg in kio-extras timeshift v4l2loopback; do
+    pkg_install_if_missing "$pkg" || true
+  done
+else
+  for pkg in build-essential ca-certificates curl wget gnupg software-properties-common flatpak unzip python3 python3-pip; do
+    pkg_install_if_missing "$pkg" || true
+  done
 
-for pkg in gnome-sushi folder-color-common timeshift vlc v4l2loopback-utils xclip; do
-  apt_install_if_missing "$pkg" || true
-done
+  for pkg in gnome-sushi folder-color-common timeshift vlc v4l2loopback-utils xclip; do
+    pkg_install_if_missing "$pkg" || true
+  done
+fi
 
 if is_installed flatpak; then
   if ! flatpak remotes --columns=name 2>/dev/null | grep -qx flathub; then
@@ -215,6 +236,7 @@ log "  Configs"
 log "═══════════════════════════════════════════════════════"
 
 bash "$SCRIPT_DIR/configs/restore-configs.sh" || warn "Config restore failed"
+bash "$SCRIPT_DIR/configs/obsidian-vault.sh" || warn "Obsidian vault setup failed"
 bash "$SCRIPT_DIR/configs/startup-apps.sh" || warn "Startup apps failed"
 bash "$SCRIPT_DIR/configs/ide-extensions.sh" || warn "IDE extensions failed"
 bash "$SCRIPT_DIR/configs/browser-extensions.sh" || warn "Browser extensions failed"
@@ -325,10 +347,73 @@ for tool in ctx7 chub omx omo sisyphus voquill; do
 done
 
 log ""
+log "── Security Lab Verification ────────────────────────"
+ensure_local_bin_dir
+
+check_path() {
+  local name="$1"
+  if is_installed "$name"; then
+    log "  ✓ $name is available"
+  else
+    warn "  ✗ $name not found in PATH"
+  fi
+}
+
+check_artifact() {
+  local label="$1"
+  shift
+  local found=0
+  for path in "$@"; do
+    if [[ -e $path ]]; then
+      log "  ✓ $label ($path)"
+      found=1
+      break
+    fi
+  done
+  if [[ $found -eq 0 ]]; then
+    warn "  ✗ $label not found (looked: $*)"
+  fi
+}
+
+check_path obsidian-app
+check_path semgrep
+check_artifact "codeql CLI" \
+  "$HOME/.local/bin/codeql" \
+  "$HOME/.local/codeql/codeql"
+check_artifact "nuclei wrapper" \
+  "$HOME/.local/bin/nuclei-docker"
+check_artifact "AFL++ wrapper" \
+  "$HOME/.local/bin/aflpp-docker"
+check_path snyk-agent-scan-safe
+check_path caido
+check_path ghidraRun
+
+if is_installed docker && docker network inspect lab-none >/dev/null 2>&1; then
+  log "  ✓ lab-none Docker network (no egress)"
+else
+  warn "  ✗ lab-none Docker network is not present"
+fi
+
+if [[ -f "$HOME/hacking/AGENTS.md" ]]; then
+  log "  ✓ ~/hacking/AGENTS.md (agent policy)"
+else
+  warn "  ✗ ~/hacking/AGENTS.md is missing"
+fi
+
+log ""
+log "── MCP consent ──────────────────────────────────────"
+if [[ -t 0 ]]; then
+  bash "$SCRIPT_DIR/configs/lab-mcp-consent.sh" || warn "MCP consent step was skipped or failed"
+else
+  log "  (non-interactive: skipping MCP consent; run setup.sh in a TTY to review)"
+fi
+
+log ""
 log "── Post-setup reminders ──────────────────────────────"
 log "  • Generate an SSH key when you need it:  ssh-keygen -t ed25519"
 log "  • Authenticate GitHub when you need it:  gh auth login -p ssh -w"
 log "  • Join your Tailnet:                     sudo tailscale up"
+log "  • Open Obsidian once to register CLI:    obsidian-app"
 
 # ══════════════════════════════════════════════════════════════════════
 # Cleanup
@@ -338,8 +423,7 @@ log "═════════════════════════
 log "  Cleanup"
 log "═══════════════════════════════════════════════════════"
 
-sudo apt-get autoclean -y
-sudo apt-get autoremove -y
+pkg_cleanup
 if is_installed flatpak; then
   flatpak update -y || true
 fi

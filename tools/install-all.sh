@@ -34,13 +34,28 @@ for name in zsh git tmux htop jq; do
   run_tool "$name"
 done
 
+# Knowledge base
+for name in obsidian; do
+  run_tool "$name"
+done
+
 # Developer utilities
 for name in bat eza delta zoxide flameshot uv bun ripgrep fd starship fzf gh docker lazygit lazydocker opencode tailscale easyeffects; do
   run_tool "$name"
 done
 
-# Heavy apps (Flatpak / deb)
-for name in nodejs obs telegram audacity gimp bitwarden; do
+# Node.js runtime (needed by some MCP/security tooling)
+for name in nodejs; do
+  run_tool "$name"
+done
+
+# Security lab
+for name in security-lab semgrep codeql nuclei snyk-agent-scan caido burp ghidra aflpp oss-fuzz-gen; do
+  run_tool "$name"
+done
+
+# Heavy apps (Flatpak / distro packages)
+for name in obs telegram audacity gimp bitwarden; do
   run_tool "$name"
 done
 

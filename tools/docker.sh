@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Docker: prebuilt installs docker-ce from Docker's official apt repo.
-# Build mode compiles the CLI only (not the daemon).
+# Docker: prebuilt install from Docker's official distro repository.
 set -euo pipefail
 
 VERSION=v28.0.4
@@ -9,6 +8,11 @@ source "$SCRIPT_DIR/../lib/helpers.sh"
 
 if is_installed docker; then
   log "docker is already installed: $(docker --version)"
+elif is_fedora_like; then
+  log "Adding Docker Fedora repository..."
+  add_dnf_repo https://download.docker.com/linux/fedora/docker-ce.repo
+  sudo dnf install -y docker-ce docker-ce-cli containerd.io \
+    docker-buildx-plugin docker-compose-plugin
 else
   log "Adding Docker apt repository..."
   sudo install -m 0755 -d /etc/apt/keyrings

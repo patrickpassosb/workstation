@@ -13,22 +13,39 @@ if is_installed clamscan && is_installed freshclam; then
   log "ClamAV is already installed."
 else
   log "Installing ClamAV and daemon..."
-  # clamav = scanner, clamav-daemon = background service
-  apt_install_if_missing clamav || true
-  apt_install_if_missing clamav-daemon || true
+  if is_fedora_like; then
+    pkg_install_if_missing clamav || true
+    pkg_install_if_missing clamav-update || pkg_install_if_missing clamav-freshclam || true
+  else
+    # clamav = scanner, clamav-daemon = background service
+    pkg_install_if_missing clamav || true
+    pkg_install_if_missing clamav-daemon || true
+  fi
 fi
 
+FRESHCLAM_SERVICE=""
+for service in clamav-freshclam freshclam; do
+  if systemctl list-unit-files "${service}.service" 2>/dev/null | awk '{print $1}' | grep -qx "${service}.service"; then
+    FRESHCLAM_SERVICE="$service"
+    break
+  fi
+done
+
 # ── Stop freshclam daemon temporarily to run manual update ───────────
-if systemctl is-active --quiet clamav-freshclam; then
-  sudo systemctl stop clamav-freshclam
+if [[ -n "$FRESHCLAM_SERVICE" ]] && systemctl is-active --quiet "$FRESHCLAM_SERVICE"; then
+  sudo systemctl stop "$FRESHCLAM_SERVICE"
 fi
 
 log "Updating virus definitions (this may take a minute)..."
 sudo freshclam --quiet || warn "Freshclam update returned non-zero (might be temporarily blocked or already updated)"
 
 # Restart background updater
-sudo systemctl start clamav-freshclam
-sudo systemctl enable clamav-freshclam >/dev/null 2>&1
+if [[ -n "$FRESHCLAM_SERVICE" ]]; then
+  sudo systemctl start "$FRESHCLAM_SERVICE"
+  sudo systemctl enable "$FRESHCLAM_SERVICE" >/dev/null 2>&1
+else
+  warn "No freshclam systemd service found; virus definitions were updated once only"
+fi
 
 # ── Create weekly scan script ────────────────────────────────────────
 SCAN_SCRIPT="/etc/cron.weekly/clamav-scan"

@@ -24,7 +24,73 @@ is_installed() {
   command -v "$1" >/dev/null 2>&1
 }
 
+ensure_local_bin_dir() {
+  mkdir -p "$HOME/.local/bin"
+}
+
+install_user_executable() {
+  local target="$1"
+  mkdir -p "$(dirname "$target")"
+  cat > "$target"
+  chmod 0755 "$target"
+}
+
 # ── Distro helpers ────────────────────────────────────────────────────
+os_release_value() {
+  local key="$1"
+  if [[ -n "${WORKSTATION_DISTRO_OVERRIDE:-}" ]]; then
+    case "$key" in
+      ID) echo "$WORKSTATION_DISTRO_OVERRIDE" ;;
+      ID_LIKE) echo "" ;;
+      VERSION_ID) echo "" ;;
+    esac
+    return 0
+  fi
+  if [[ -f /etc/os-release ]]; then
+    (
+      # shellcheck disable=SC1091
+      . /etc/os-release
+      case "$key" in
+        ID) echo "${ID:-}" ;;
+        ID_LIKE) echo "${ID_LIKE:-}" ;;
+        VERSION_ID) echo "${VERSION_ID:-}" ;;
+      esac
+    )
+  fi
+}
+
+distro_id() {
+  os_release_value ID
+}
+
+distro_id_like() {
+  os_release_value ID_LIKE
+}
+
+is_fedora_like() {
+  local id id_like
+  id="$(distro_id)"
+  id_like="$(distro_id_like)"
+  [[ "$id" == "fedora" || "$id" == "rhel" || "$id" == "centos" || "$id_like" == *"fedora"* || "$id_like" == *"rhel"* ]]
+}
+
+is_ubuntu_like() {
+  local id id_like
+  id="$(distro_id)"
+  id_like="$(distro_id_like)"
+  [[ "$id" == "ubuntu" || "$id" == "debian" || "$id" == "pop" || "$id" == "linuxmint" || "$id_like" == *"ubuntu"* || "$id_like" == *"debian"* ]]
+}
+
+pkg_manager() {
+  if is_fedora_like; then
+    echo "dnf"
+  elif is_ubuntu_like; then
+    echo "apt"
+  else
+    echo "unknown"
+  fi
+}
+
 # On Linux Mint (and other Ubuntu derivatives), VERSION_CODENAME and
 # lsb_release -cs return the Mint codename (e.g. "zena"), but third-party
 # apt repos need the underlying Ubuntu codename (e.g. "noble").
@@ -38,26 +104,125 @@ get_ubuntu_codename() {
   fi
 }
 
-# ── APT helpers ───────────────────────────────────────────────────────
-apt_install_if_missing() {
+# ── Package helpers ──────────────────────────────────────────────────
+pkg_is_installed() {
   local pkg="$1"
-  if dpkg -s "$pkg" >/dev/null 2>&1; then
-    log "APT package already installed: $pkg"
-    return 0
-  fi
-  if apt-cache show "$pkg" >/dev/null 2>&1; then
-    log "Installing APT package: $pkg"
-    sudo apt-get install -y "$pkg"
-    return 0
-  fi
-  warn "APT package not found: $pkg"
+  case "$(pkg_manager)" in
+    apt) dpkg -s "$pkg" >/dev/null 2>&1 ;;
+    dnf) rpm -q "$pkg" >/dev/null 2>&1 ;;
+    *) return 1 ;;
+  esac
+}
+
+pkg_available() {
+  local pkg="$1"
+  case "$(pkg_manager)" in
+    apt) apt-cache show "$pkg" >/dev/null 2>&1 ;;
+    dnf) dnf -q list "$pkg" >/dev/null 2>&1 ;;
+    *) return 1 ;;
+  esac
+}
+
+pkg_update() {
+  case "$(pkg_manager)" in
+    apt) sudo apt-get update -y ;;
+    dnf) sudo dnf makecache -y ;;
+    *) err "Unsupported Linux distribution: $(distro_id)"; return 1 ;;
+  esac
+}
+
+pkg_cleanup() {
+  case "$(pkg_manager)" in
+    apt)
+      sudo apt-get autoclean -y
+      sudo apt-get autoremove -y
+      ;;
+    dnf)
+      sudo dnf autoremove -y || true
+      sudo dnf clean packages || true
+      ;;
+    *) warn "No cleanup action for unsupported distribution: $(distro_id)" ;;
+  esac
+}
+
+pkg_install_if_missing() {
+  local pkg
+  for pkg in "$@"; do
+    if pkg_is_installed "$pkg"; then
+      log "Package already installed: $pkg"
+      continue
+    fi
+    if pkg_available "$pkg"; then
+      log "Installing package: $pkg"
+      case "$(pkg_manager)" in
+        apt) sudo apt-get install -y "$pkg" ;;
+        dnf) sudo dnf install -y "$pkg" ;;
+      esac
+    else
+      warn "Package not found: $pkg"
+      return 1
+    fi
+  done
+}
+
+install_first_available_pkg() {
+  local pkg
+  for pkg in "$@"; do
+    if pkg_available "$pkg"; then
+      pkg_install_if_missing "$pkg"
+      return 0
+    fi
+  done
+  warn "None of these packages were available: $*"
   return 1
+}
+
+skip_unsupported_distro() {
+  local item="$1"
+  warn "$item is not supported on $(distro_id) by this script yet — skipping."
+  return 0
+}
+
+ensure_dnf_config_manager() {
+  if ! is_fedora_like; then
+    return 0
+  fi
+  sudo dnf install -y 'dnf5-command(config-manager)' \
+    || sudo dnf install -y dnf5-plugins \
+    || sudo dnf install -y dnf-plugins-core \
+    || true
+}
+
+add_dnf_repo() {
+  local repo_url="$1"
+
+  if ! is_fedora_like; then
+    warn "DNF repository requested on non-dnf distro ($(distro_id)): $repo_url"
+    return 1
+  fi
+
+  ensure_dnf_config_manager
+  if command -v dnf-3 >/dev/null 2>&1; then
+    sudo dnf-3 config-manager --add-repo "$repo_url"
+  else
+    sudo dnf config-manager addrepo --from-repofile="$repo_url" \
+      || sudo dnf config-manager --add-repo "$repo_url"
+  fi
+}
+
+# ── APT compatibility helpers ────────────────────────────────────────
+apt_install_if_missing() {
+  if ! is_ubuntu_like; then
+    warn "apt package requested on non-apt distro ($(distro_id)): $*"
+    return 1
+  fi
+  pkg_install_if_missing "$@"
 }
 
 ensure_build_deps() {
   log "Ensuring build dependencies: $*"
   for pkg in "$@"; do
-    apt_install_if_missing "$pkg" || true
+    pkg_install_if_missing "$pkg" || true
   done
 }
 
@@ -65,6 +230,11 @@ add_apt_repo() {
   local name="$1"       # e.g. "brave-browser"
   local gpg_url="$2"    # URL to the GPG key
   local repo_line="$3"  # full deb [...] line
+
+  if ! is_ubuntu_like; then
+    warn "APT repository requested on non-apt distro ($(distro_id)): $name"
+    return 1
+  fi
 
   sudo install -d -m 0755 /etc/apt/keyrings
   if [[ ! -f "/etc/apt/keyrings/${name}-archive-keyring.gpg" ]]; then
@@ -209,4 +379,92 @@ bun_or_npm_install() {
     log "  Using npm install (cwd: $(pwd))"
     npm install
   fi
+}
+
+# ── Security lab helpers ─────────────────────────────────────────────
+# Idempotently create an internal Docker network with no egress.
+# Used by hardened container wrappers to prevent accidental exfiltration.
+docker_network_ensure() {
+  local net="$1"
+  if ! is_installed docker; then
+    return 0
+  fi
+  if docker network inspect "$net" >/dev/null 2>&1; then
+    return 0
+  fi
+  log "Creating internal Docker network: $net (no internet egress)"
+  docker network create --internal "$net" >/dev/null 2>&1 \
+    || warn "Failed to create $net; wrappers will fall back to host network"
+}
+
+# Install a hardened Docker wrapper to ~/.local/bin/<name>.
+#   install_docker_wrapper <name> <image> <mount_path>
+# The wrapper:
+#   - bind-mounts $PWD at <mount_path> (rw)
+#   - runs as the current user (no root in container)
+#   - drops all capabilities, blocks suid escalation
+#   - mounts the filesystem read-only except the project dir
+#   - defaults to the internal 'lab-none' network (no egress)
+#   - honors LAB_RELAXED=1 to switch to --network=host (escape hatch)
+install_docker_wrapper() {
+  local name="$1"
+  local image="$2"
+  local mount="$3"
+  local target="$HOME/.local/bin/$name"
+
+  ensure_local_bin_dir
+
+  install_user_executable "$target" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+
+image='$image'
+mount='$mount'
+relaxed="\${LAB_RELAXED:-0}"
+
+if [[ "\$relaxed" == "1" ]]; then
+  network_args=(--network=host)
+  printf '[WARN] LAB_RELAXED=1: $name is using host network (egress enabled)\\n' >&2
+else
+  network_args=(--network=lab-none)
+fi
+
+tty_args=()
+if [[ -t 0 && -t 1 ]]; then
+  tty_args=(-it)
+fi
+
+exec docker run --rm "\${tty_args[@]}" \
+  --read-only \
+  --cap-drop=ALL \
+  --security-opt=no-new-privileges \
+  -u "\$(id -u):\$(id -g)" \
+  -v "\$PWD:\${mount}:rw" \
+  -w "\${mount}" \
+  "\${network_args[@]}" \
+  "\$image" "\$@"
+EOF
+
+  log "Installed hardened wrapper: $target (use LAB_RELAXED=1 to allow egress)"
+}
+
+# Install a cautious uvx wrapper to ~/.local/bin/<name>.
+#   install_uvx_wrapper <name> <pkg> [warn_message]
+install_uvx_wrapper() {
+  local name="$1"
+  local pkg="$2"
+  local warn_msg="${3:-This tool can execute commands or send data to a remote service.}"
+  local target="$HOME/.local/bin/$name"
+
+  ensure_local_bin_dir
+
+  install_user_executable "$target" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+
+printf '[WARN] %s\\n' "\$0: $warn_msg" >&2
+exec uvx "$pkg@latest" "\$@"
+EOF
+
+  log "Installed cautious wrapper: $target"
 }

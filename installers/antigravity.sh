@@ -4,8 +4,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/helpers.sh"
 
-if is_installed antigravity || dpkg -s antigravity >/dev/null 2>&1; then
+if is_installed antigravity || (is_ubuntu_like && dpkg -s antigravity >/dev/null 2>&1); then
   log "Antigravity IDE is already installed."
+  exit 0
+fi
+
+if is_fedora_like; then
+  skip_unsupported_distro "Antigravity IDE"
   exit 0
 fi
 

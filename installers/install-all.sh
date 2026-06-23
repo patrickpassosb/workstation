@@ -30,7 +30,6 @@ INSTALLER_SCRIPTS=(
   homebrew
   brave
   chrome
-  cursor
   warp
   zoom
   discord

@@ -67,6 +67,8 @@ BRAVE_POLICY_DIR="/etc/brave/policies"
 if is_installed brave-browser || is_installed brave-browser-stable; then
   install_policy "$BRAVE_POLICY_DIR" "${BRAVE_EXTENSIONS[@]}"
   log "Brave: ${#BRAVE_EXTENSIONS[@]} extensions will be auto-installed on next launch"
+elif command -v flatpak >/dev/null 2>&1 && flatpak info com.brave.Browser >/dev/null 2>&1; then
+  warn "Brave Flatpak found — managed extension policies are not configured automatically"
 else
   warn "Brave browser not found — skipping Brave extension policy"
 fi

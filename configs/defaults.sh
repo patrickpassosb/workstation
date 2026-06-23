@@ -31,6 +31,9 @@ if is_installed brave-browser; then
 elif is_installed brave-browser-stable; then
   set_default_browser brave-browser-stable.desktop
   log "Default browser: Brave"
+elif command -v flatpak >/dev/null 2>&1 && flatpak info com.brave.Browser >/dev/null 2>&1; then
+  set_default_browser com.brave.Browser.desktop
+  log "Default browser: Brave (Flatpak)"
 else
   warn "Brave not installed — skipping default browser"
 fi
@@ -67,6 +70,20 @@ if command -v gsettings >/dev/null 2>&1 && run_as_user gsettings list-keys org.g
   run_as_user gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
   run_as_user gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark' 2>/dev/null || true
   log "Dark mode enabled (GNOME)"
+  DARK_SET=true
+fi
+
+# KDE Plasma
+if [[ "${XDG_CURRENT_DESKTOP:-}" == *"KDE"* ]] || command -v plasma-apply-colorscheme >/dev/null 2>&1; then
+  if command -v plasma-apply-colorscheme >/dev/null 2>&1; then
+    run_as_user plasma-apply-colorscheme BreezeDark >/dev/null 2>&1 || true
+  fi
+  if command -v plasma-apply-lookandfeel >/dev/null 2>&1; then
+    run_as_user plasma-apply-lookandfeel -a org.kde.breezedark.desktop >/dev/null 2>&1 || true
+  elif command -v lookandfeeltool >/dev/null 2>&1; then
+    run_as_user lookandfeeltool -a org.kde.breezedark.desktop >/dev/null 2>&1 || true
+  fi
+  log "Dark mode enabled (KDE Plasma)"
   DARK_SET=true
 fi
 
@@ -111,6 +128,13 @@ if [[ -f "$WALLPAPER" ]]; then
     run_as_user gsettings set org.gnome.desktop.background picture-uri-dark "$WALLPAPER_URI" 2>/dev/null || true
     log "Wallpaper set (GNOME)"
     WALLPAPER_SET=true
+  fi
+
+  if command -v plasma-apply-wallpaperimage >/dev/null 2>&1; then
+    if run_as_user plasma-apply-wallpaperimage "$WALLPAPER" >/dev/null 2>&1; then
+      log "Wallpaper set (KDE Plasma)"
+      WALLPAPER_SET=true
+    fi
   fi
 
   if [[ "$WALLPAPER_SET" == "false" ]]; then

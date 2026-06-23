@@ -9,6 +9,11 @@ if is_installed warp-terminal; then
   exit 0
 fi
 
+if is_fedora_like; then
+  skip_unsupported_distro "Warp terminal"
+  exit 0
+fi
+
 log "Installing Warp terminal..."
 
 # Warp's key is ASCII-armored (.asc) and needs dearmoring

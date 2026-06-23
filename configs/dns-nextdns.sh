@@ -13,8 +13,15 @@ NEXTDNS_ID="${NEXTDNS_ID:-ab1bb7}"
 
 # ── Preflight ────────────────────────────────────────────────────────
 if ! systemctl list-unit-files systemd-resolved.service >/dev/null 2>&1; then
-  err "systemd-resolved is not available on this system"
-  exit 1
+  warn "systemd-resolved is not available on this system — skipping NextDNS setup"
+  exit 0
+fi
+
+if is_fedora_like && ! systemctl is-active --quiet systemd-resolved; then
+  warn "systemd-resolved is available but not active on Fedora."
+  warn "Skipping NextDNS setup to avoid changing Fedora KDE DNS behavior implicitly."
+  warn "Enable systemd-resolved first if you want this script to manage DNS-over-TLS."
+  exit 0
 fi
 
 require_cmd nmcli

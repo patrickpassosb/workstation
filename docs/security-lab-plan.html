@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Workstation Security Lab — Plan</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #0f1115; --fg: #e6e8eb; --muted: #8a93a3; --line: #232733;
+    --accent: #7cc4ff; --good: #7ad88a; --warn: #ffce6a; --bad: #ff7a7a; --code: #14171f;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#fafbfc; --fg:#1a1d23; --muted:#5b6473; --line:#e3e6eb; --code:#f1f3f6; }
+  }
+  html, body { background: var(--bg); color: var(--fg); }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6; max-width: 880px; margin: 2.5rem auto; padding: 0 1.25rem;
+  }
+  h1, h2, h3 { line-height: 1.25; }
+  h1 { font-size: 1.9rem; margin-bottom: 0.25rem; }
+  h2 { font-size: 1.35rem; margin-top: 2.4rem; border-bottom: 1px solid var(--line); padding-bottom: 0.3rem; }
+  h3 { font-size: 1.05rem; margin-top: 1.6rem; }
+  .muted { color: var(--muted); font-size: 0.9rem; }
+  .pill { display:inline-block; padding:2px 8px; border:1px solid var(--line); border-radius:999px; font-size:0.75rem; margin-right:4px; color: var(--muted); }
+  .pill.good { color: var(--good); border-color: rgba(122,216,138,0.4); }
+  .pill.warn { color: var(--warn); border-color: rgba(255,206,106,0.4); }
+  code { background: var(--code); padding: 1px 6px; border-radius: 4px; font-size: 0.92em; }
+  pre { background: var(--code); padding: 14px 16px; border-radius: 8px; overflow-x: auto; border: 1px solid var(--line); }
+  pre code { background: transparent; padding: 0; }
+  table { width:100%; border-collapse: collapse; margin: 1rem 0; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 0.9rem; }
+  blockquote { border-left: 3px solid var(--accent); padding: 0.25rem 1rem; color: var(--muted); margin: 1rem 0; }
+  .callout { background: var(--code); border:1px solid var(--line); border-left:3px solid var(--accent); padding: 12px 14px; border-radius: 6px; margin: 1rem 0; }
+  .checklist li { list-style: none; }
+  .checklist li::before { content: "☐ "; color: var(--muted); }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 2rem 0; }
+  footer { color: var(--muted); font-size: 0.85rem; margin-top: 3rem; }
+</style>
+</head>
+<body>
+
+<h1>Workstation Security Lab — Plan</h1>
+<p class="muted">Branch <code>prebuilt-only</code> · Status: review complete · Mode: build-ready draft</p>
+
+<p>
+<span class="pill good">Harden first</span>
+<span class="pill warn">Expand after</span>
+<span class="pill">Manual MCP</span>
+<span class="pill">Multi-use threat model</span>
+</p>
+
+<blockquote>
+  <strong>Focus choice.</strong> Harden the existing lab before adding new tools. The current lab covers static analysis (Semgrep, CodeQL) plus two Docker-isolated scanners (Nuclei, AFL++) and two manual proxies (Caido, Burp). The biggest security wins are wrapper hardening, missing secret/SCA/IaC coverage, and a clearer MCP-audit story — all cheaper than adding new repos.
+</blockquote>
+
+<hr>
+
+<h2>1. Scope &amp; threat model</h2>
+
+<p>The lab serves three overlapping use cases:</p>
+<ol>
+  <li><strong>Personal appsec work</strong> on the user's own codebases.</li>
+  <li><strong>Authorized third-party testing</strong> (bug bounty, pentest engagements).</li>
+  <li><strong>Learning / CTF</strong> (HackTheBox, portswigger labs, etc.).</li>
+</ol>
+
+<p>Design implications:</p>
+<ul>
+  <li>Default to the <em>strictest</em> (third-party) case: isolation, audit trail, no silent credential registration, no host-level side effects from scanning tools.</li>
+  <li>Allow the user to opt into a relaxed mode for personal/CTF work via a single env var (e.g. <code>LAB_RELAXED=1</code>) that loosens the wrappers.</li>
+  <li>Treat every <code>tools/*.sh</code> script as audited at install time — no post-install hooks that phone home, no telemetry without explicit opt-in.</li>
+</ul>
+
+<h2>2. Decisions</h2>
+
+<table>
+  <thead><tr><th>Question</th><th>Decision</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Focus order</td>
+      <td>Harden first, expand second</td>
+      <td>Wrapper and verify-block fixes are low-risk and unlock safer expansion later.</td>
+    </tr>
+    <tr>
+      <td>MCP registration</td>
+      <td>Manual, with one-shot consent prompt during <code>setup.sh</code></td>
+      <td>Auto-register is unsafe for executable MCPs. A one-shot prompt at install time is the right moment to decide. After that, the user runs <code>codex mcp add …</code> themselves.</td>
+    </tr>
+    <tr>
+      <td>Isolation default</td>
+      <td>Strict: <code>--read-only</code>, <code>--cap-drop=ALL</code>, drop user-namespaced networks</td>
+      <td>Aligns with the third-party threat model; relaxed mode opt-in for personal use.</td>
+    </tr>
+    <tr>
+      <td>Default lab network</td>
+      <td>Isolated Docker network with no egress by default; explicit <code>--network=host</code> opt-in per run</td>
+      <td>Prevents accidental exfiltration; user can grant network on a per-invocation basis.</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h2>3. Phase 1 — Hardening (no new tools)</h2>
+
+<h3>3.1 Wrapper isolation rewrite</h3>
+
+<p>Replace the inline <code>install_user_executable</code> blocks in <code>tools/nuclei.sh</code> and <code>tools/aflpp.sh</code> with shared helpers in <code>lib/helpers.sh</code>:</p>
+
+<ul>
+  <li><code>install_docker_wrapper &lt;name&gt; &lt;image&gt; &lt;mount_path&gt; [env…]</code></li>
+  <li><code>install_uvx_wrapper &lt;name&gt; &lt;pkg&gt; [warn_message]</code></li>
+</ul>
+
+<p>Wrapper behavior:</p>
+<pre><code>exec docker run --rm \
+  --read-only \
+  --cap-drop=ALL \
+  --security-opt=no-new-privileges \
+  -u "$(id -u):$(id -g)" \
+  -v "$PWD:&lt;mount&gt;:rw" \
+  -w &lt;mount&gt; \
+  --network=lab-none \
+  "$image" "$@"</code></pre>
+
+<p>Add <code>--network=host</code> escape hatch via <code>LAB_RELAXED=1 nuclei-docker …</code> (printed in <code>--help</code> output).</p>
+
+<p>Create a dedicated <code>lab-none</code> network in <code>tools/security-lab.sh</code> (idempotent, <code>docker network create --internal lab-none 2&gt;/dev/null || true</code>).</p>
+
+<h3>3.2 Verify-block correctness</h3>
+
+<p>The current <code>Security Lab Verification</code> block in <code>setup.sh</code> uses <code>is_installed</code>, which only checks <code>command -v</code>. This fails for tools installed to <code>~/.local/bin</code> when the parent shell has not yet sourced the new PATH.</p>
+
+<p>Replace the verify block with explicit checks:</p>
+<ul>
+  <li>For each tool, check the actual artifact:
+    <ul>
+      <li><code>test -x ~/.local/bin/obsidian-app || test -x ~/AppImage/Obsidian-*.AppImage</code></li>
+      <li><code>test -x ~/.local/bin/codeql</code> and <code>test -x ~/.local/codeql/codeql</code></li>
+      <li><code>test -x ~/.local/bin/nuclei-docker</code></li>
+      <li>etc.</li>
+    </ul>
+  </li>
+  <li>Fall back to <code>command -v</code> for tools that are always on PATH (e.g. <code>semgrep</code>, <code>ghidraRun</code>).</li>
+</ul>
+
+<h3>3.3 CodeQL portability</h3>
+
+<p>Current <code>tools/codeql.sh</code> hard-fails on non-x86_64. Replace with:</p>
+<pre><code>case "$(uname -m)" in
+  x86_64) asset="codeql-bundle-linux64.tar.gz" ;;
+  aarch64) asset="codeql-bundle-linux64.tar.gz" ;;  # CodeQL ships a single Linux x64 bundle; arm users get a clear warn
+  *) warn "CodeQL bundle is x86_64-only on Linux; skipping"; exit 0 ;;
+esac</code></pre>
+<p>And keep the existing flow for x86_64. On aarch64, print a clear <code>warn</code> and exit 0 so it does not break the rest of setup.</p>
+
+<h3>3.4 Snyk auth callout</h3>
+
+<p>In <code>tools/snyk-agent-scan.sh</code>, add a post-install log line:</p>
+<pre><code>log "Set SNYK_TOKEN before use: export SNYK_TOKEN=..."
+log "Or run: snyk-agent-scan-safe auth"</code></pre>
+<p>And reference it in <code>docs/security-lab.md</code>.</p>
+
+<h3>3.5 MCP one-shot consent prompt</h3>
+
+<p>Add <code>configs/lab-mcp-consent.sh</code>:</p>
+<ul class="checklist">
+  <li>Print the table of MCPs (name, repo URL, what it can do) — pulled from a small JSON/YAML in <code>configs/lab-mcps.json</code>.</li>
+  <li>For each, default to <em>skip</em>; only register if the user explicitly says <code>y</code>.</li>
+  <li>If any are approved, print the exact <code>codex mcp add …</code> / <code>claude mcp add …</code> commands for the user to run themselves (do <strong>not</strong> auto-run; the parent process may not have the agent CLI in PATH).</li>
+  <li>Wire into <code>setup.sh</code> after the security-lab install block.</li>
+</ul>
+
+<h3>3.6 Ghidra launcher search hardening</h3>
+
+<p>The current <code>find … | sort -V | tail -n 1</code> in <code>tools/ghidra.sh</code> can pick a stale binary. Tighten to:</p>
+<pre><code>find "$HOME/.local" -maxdepth 4 -name ghidraRun -type f -newer /etc/hostname 2&gt;/dev/null | head -n 1</code></pre>
+<p>Or, better, accept <code>GHIDRA_HOME</code> env var and short-circuit to that.</p>
+
+<h3>3.7 <code>~/hacking/AGENTS.md</code></h3>
+
+<p>Create a tiny policy file in the lab root that any agent reading the workspace will see:</p>
+<pre><code># Security Lab — Agent Policy
+
+- This workspace is for **authorized** testing only.
+- Do not run any tool that executes code or exfiltrates data
+  without explicit user confirmation in the current session.
+- Do not register MCP servers. Suggest the command; let the user run it.
+- Do not modify Burp / Caido extensions, tokens, or licenses.
+- All findings belong in `~/hacking/findings/`. Do not write to `$HOME`.
+</code></pre>
+<p>Generate it from <code>tools/security-lab.sh</code>.</p>
+
+<hr>
+
+<h2>4. Phase 2 — Coverage gaps</h2>
+
+<h3>4.1 Secret scanning</h3>
+<p>Add <code>tools/gitleaks.sh</code> (host install via GitHub release binary, <code>github_release_install</code>). No wrapper needed; it is a passive scanner.</p>
+<p>Add a <code>tools/pre-commit.sh</code> that installs <code>pre-commit</code> via <code>uv tool install</code> and writes <code>~/.config/pre-commit/repo-templates/security.yaml</code> with gitleaks + shellcheck + ruff (Python) hooks. The user copies it into their projects.</p>
+
+<h3>4.2 SCA / SBOM</h3>
+<p>Add <code>tools/trivy.sh</code>. Trivy is small, covers filesystem + image + IaC, and avoids Snyk's auth footprint for casual use.</p>
+
+<h3>4.3 IaC scanning</h3>
+<p>Trivy covers Terraform / K8s manifests. No separate tool needed.</p>
+
+<h3>4.4 Recon / OSINT</h3>
+<p>Out of scope for the auto-install path. Add a <code>docs/recon.md</code> pointer list (amass, subfinder, httpx) so the user knows what to add when they need it, with one-line install commands.</p>
+
+<h3>4.5 Snyk vs Trivy default</h3>
+<p>Document the trade-off: <strong>Trivy</strong> is preferred for personal/CI use (no auth, broader coverage); <strong>Snyk agent-scan</strong> stays for app-via-MCP workflows.</p>
+
+<hr>
+
+<h2>5. Phase 3 — Documentation polish</h2>
+
+<ul>
+  <li>Update <code>docs/security-lab.md</code> with the new tools, the wrapper flags, the <code>LAB_RELAXED=1</code> opt-in, the <code>SNYK_TOKEN</code> requirement, and the <code>AGENTS.md</code> policy.</li>
+  <li>Add a short <code>docs/security-lab-quickstart.md</code> showing the three most common flows: <em>scan my own code</em>, <em>authorized web test</em>, <em>CTF box</em>.</li>
+  <li>Update <code>README.md</code> security-lab section to reflect the new tools and the MCP consent step.</li>
+</ul>
+
+<hr>
+
+<h2>6. File-by-file change list</h2>
+
+<table>
+<thead><tr><th>File</th><th>Change</th><th>Phase</th></tr></thead>
+<tbody>
+<tr><td><code>lib/helpers.sh</code></td><td>Add <code>install_docker_wrapper</code>, <code>install_uvx_wrapper</code>, <code>docker_network_ensure</code></td><td>1</td></tr>
+<tr><td><code>tools/nuclei.sh</code></td><td>Replace inline wrapper with shared helper</td><td>1</td></tr>
+<tr><td><code>tools/aflpp.sh</code></td><td>Replace inline wrapper with shared helper</td><td>1</td></tr>
+<tr><td><code>tools/snyk-agent-scan.sh</code></td><td>Use shared <code>install_uvx_wrapper</code>; add auth log lines</td><td>1</td></tr>
+<tr><td><code>tools/security-lab.sh</code></td><td>Create <code>lab-none</code> network; write <code>~/hacking/AGENTS.md</code></td><td>1</td></tr>
+<tr><td><code>tools/codeql.sh</code></td><td>Soften aarch64 to <code>warn + exit 0</code></td><td>1</td></tr>
+<tr><td><code>tools/ghidra.sh</code></td><td>Accept <code>GHIDRA_HOME</code>; tighten <code>find</code></td><td>1</td></tr>
+<tr><td><code>setup.sh</code></td><td>Rewrite Security Lab Verification block; add MCP consent step</td><td>1</td></tr>
+<tr><td><code>configs/lab-mcp-consent.sh</code></td><td>New file — one-shot MCP consent prompt</td><td>1</td></tr>
+<tr><td><code>configs/lab-mcps.json</code></td><td>New file — MCP registry consumed by the consent script</td><td>1</td></tr>
+<tr><td><code>tools/install-all.sh</code></td><td>Insert new tools in the security-lab block</td><td>2</td></tr>
+<tr><td><code>tools/gitleaks.sh</code></td><td>New file</td><td>2</td></tr>
+<tr><td><code>tools/trivy.sh</code></td><td>New file</td><td>2</td></tr>
+<tr><td><code>tools/pre-commit.sh</code></td><td>New file</td><td>2</td></tr>
+<tr><td><code>docs/security-lab.md</code></td><td>Document new tools, opt-in flag, MCP audit</td><td>3</td></tr>
+<tr><td><code>docs/security-lab-quickstart.md</code></td><td>New file</td><td>3</td></tr>
+<tr><td><code>README.md</code></td><td>Update security-lab section</td><td>3</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2>7. Verification plan</h2>
+
+<p>For each phase, run on a fresh Fedora KDE VM and a fresh Ubuntu 24.04 VM (the only two supported targets):</p>
+
+<ol>
+  <li><strong>Wrapper isolation</strong>
+    <pre><code>LAB_RELAXED=0 nuclei-docker -h      # uses lab-none, no host network
+LAB_RELAXED=1 nuclei-docker -h      # uses host network, prints warning
+docker run --rm --network=lab-none alpine ping -c1 1.1.1.1  # must fail</code></pre>
+  </li>
+  <li><strong>Verify block</strong> — pre-source <code>~/.local/bin</code> and re-run setup; every lab tool should print <code>✓</code>.</li>
+  <li><strong>MCP consent</strong> — run setup with no stdin, confirm it skips registration cleanly.</li>
+  <li><strong>Gitleaks/Trivy</strong> — clone a small repo with a known dummy secret and confirm detection.</li>
+  <li><strong>Pre-commit</strong> — <code>pre-commit run --all-files</code> in a project that copies <code>security.yaml</code>.</li>
+</ol>
+
+<hr>
+
+<h2>8. Risks &amp; rollback</h2>
+
+<ul>
+  <li><strong>Wrapper breakage.</strong> Some scanners (e.g. nuclei templates, afl++ LLVM plugins) genuinely need network or write access. The <code>LAB_RELAXED=1</code> opt-in covers this; document it in the quickstart.</li>
+  <li><strong>Trivy false positives.</strong> Add a short note in the quickstart about <code>.trivyignore</code>.</li>
+  <li><strong>Pre-commit friction.</strong> Some repos disable hooks. Document how to bypass with <code>git commit --no-verify</code> for the rare case.</li>
+  <li><strong>Rollback.</strong> Each new file is additive. Wrappers are replaced in place, but the new helpers export <code>LAB_RELAXED=1</code> as a no-op fallback, so a partial re-install still works.</li>
+</ul>
+
+<hr>
+
+<h2>9. Open questions for you</h2>
+
+<ol>
+  <li>Should <code>trivy</code> replace <code>snyk-agent-scan-safe</code> in the default verify list, or coexist?</li>
+  <li>Do you want the MCP consent step to also handle <code>claude mcp add</code> in addition to <code>codex mcp add</code>?</li>
+  <li>Should the lab get a dedicated DNS-over-TLS profile (e.g. NextDNS config id) for outbound traffic, or stay on the system resolver?</li>
+  <li>Is the <code>LAB_RELAXED=1</code> env var the right control surface, or do you prefer explicit per-tool flags (e.g. <code>nuclei-docker --net=host</code>)?</li>
+</ol>
+
+<footer>
+  Generated as a build-ready plan. Apply in Phase 1 → 2 → 3 order, with the verification gates between phases.
+</footer>
+
+</body>
+</html>

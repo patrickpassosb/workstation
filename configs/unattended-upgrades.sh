@@ -8,8 +8,39 @@ log "═════════════════════════
 log "  Unattended Upgrades — Automatic Security Patches"
 log "═══════════════════════════════════════════════════════"
 
+if is_fedora_like; then
+  pkg_install_if_missing dnf-automatic || { err "Failed to install dnf-automatic"; exit 1; }
+
+  DNF_AUTOMATIC="/etc/dnf/automatic.conf"
+  if [[ -f "$DNF_AUTOMATIC" ]]; then
+    sudo sed -i \
+      -e 's/^upgrade_type = .*/upgrade_type = security/' \
+      -e 's/^apply_updates = .*/apply_updates = yes/' \
+      "$DNF_AUTOMATIC"
+    log "Configured $DNF_AUTOMATIC for automatic security updates"
+  else
+    warn "$DNF_AUTOMATIC not found after dnf-automatic install"
+  fi
+
+  sudo systemctl enable --now dnf-automatic-install.timer
+
+  log ""
+  log "── Verification ──────────────────────────────────────"
+  if systemctl is-active --quiet dnf-automatic-install.timer; then
+    log "dnf-automatic-install.timer: active"
+  else
+    warn "dnf-automatic-install.timer is not active"
+  fi
+
+  log ""
+  log "Automatic security updates configured"
+  log "  • Fedora security patches install via dnf-automatic"
+  log "  • Config: $DNF_AUTOMATIC"
+  exit 0
+fi
+
 # ── Install ──────────────────────────────────────────────────────────
-apt_install_if_missing unattended-upgrades || { err "Failed to install unattended-upgrades"; exit 1; }
+pkg_install_if_missing unattended-upgrades || { err "Failed to install unattended-upgrades"; exit 1; }
 
 # ── Check if already configured ──────────────────────────────────────
 AUTO_UPGRADES="/etc/apt/apt.conf.d/20auto-upgrades"

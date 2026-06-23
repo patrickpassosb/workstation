@@ -4,12 +4,53 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/helpers.sh"
 
+if is_fedora_like; then
+  log "═══════════════════════════════════════════════════════"
+  log "  Firewall — firewalld"
+  log "═══════════════════════════════════════════════════════"
+
+  pkg_install_if_missing firewalld || { err "Failed to install firewalld"; exit 1; }
+  sudo systemctl enable --now firewalld
+
+  log "Setting default zone: public"
+  sudo firewall-cmd --permanent --set-default-zone=public
+
+  log "Allowing SSH service"
+  sudo firewall-cmd --permanent --zone=public --add-service=ssh
+
+  if ip link show tailscale0 > /dev/null 2>&1 || is_installed tailscale; then
+    log "Trusting Tailscale interface (tailscale0)"
+    sudo firewall-cmd --permanent --zone=trusted --add-interface=tailscale0 || true
+    for port in 3000 5173 8000 8080; do
+      sudo firewall-cmd --permanent --zone=public \
+        --add-rich-rule="rule family=ipv4 source address=100.64.0.0/10 port port=${port} protocol=tcp accept"
+    done
+  fi
+
+  sudo firewall-cmd --reload
+
+  log ""
+  log "── Verification ──────────────────────────────────────"
+  sudo firewall-cmd --get-active-zones
+  sudo firewall-cmd --zone=public --list-all
+
+  log ""
+  log "Firewall configuration complete"
+  log ""
+  log "── Quick reference ───────────────────────────────────"
+  log "  sudo firewall-cmd --state"
+  log "  sudo firewall-cmd --zone=public --list-all"
+  log "  sudo firewall-cmd --permanent --zone=public --add-port=80/tcp"
+  log "  sudo firewall-cmd --reload"
+  exit 0
+fi
+
 log "═══════════════════════════════════════════════════════"
 log "  Firewall — UFW (Uncomplicated Firewall)"
 log "═══════════════════════════════════════════════════════"
 
 # ── Install UFW ──────────────────────────────────────────────────────
-apt_install_if_missing ufw || { err "Failed to install UFW"; exit 1; }
+pkg_install_if_missing ufw || { err "Failed to install UFW"; exit 1; }
 
 # ── Check if already enabled ─────────────────────────────────────────
 if sudo ufw status | grep -q "Status: active"; then

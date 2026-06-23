@@ -4,8 +4,19 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/helpers.sh"
 
-if is_installed brave-browser; then
+if is_installed brave-browser || is_installed brave-browser-stable; then
   log "Brave browser is already installed."
+  exit 0
+fi
+
+if is_fedora_like; then
+  if command -v flatpak >/dev/null 2>&1 && flatpak info com.brave.Browser >/dev/null 2>&1; then
+    log "Brave browser is already installed via Flatpak."
+    exit 0
+  fi
+  log "Installing Brave browser via Flatpak..."
+  flatpak_install_if_missing com.brave.Browser
+  log "Brave browser installed."
   exit 0
 fi
 

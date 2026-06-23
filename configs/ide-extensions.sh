@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/helpers.sh"
 
 log "═══════════════════════════════════════════════════════"
-log "  IDE Extensions (Cursor + Antigravity)"
+log "  IDE Extensions (Antigravity)"
 log "═══════════════════════════════════════════════════════"
 
 # ── Shared extensions (installed in both IDEs) ───────────────────────
@@ -26,9 +26,6 @@ SHARED_EXTENSIONS=(
   "tomoki1207.pdf"
   "zhuangtongfa.material-theme"
 )
-
-# ── Cursor-only extensions ───────────────────────────────────────────
-CURSOR_ONLY=()
 
 # ── Antigravity-only extensions ──────────────────────────────────────
 ANTIGRAVITY_ONLY=()
@@ -60,17 +57,6 @@ if [[ "$(id -u)" -eq 0 ]]; then
   warn "IDE extensions should be installed as your regular user, not root."
   warn "Run after setup:  bash $SCRIPT_DIR/ide-extensions.sh"
   exit 0
-fi
-
-# ── Cursor ───────────────────────────────────────────────────────────
-if is_installed cursor; then
-  log ""
-  log "── Cursor ────────────────────────────────────────────"
-  CURSOR_ALL=("${SHARED_EXTENSIONS[@]}" "${CURSOR_ONLY[@]}")
-  install_extensions cursor "Cursor" "${CURSOR_ALL[@]}"
-  log "Cursor: ${#CURSOR_ALL[@]} extensions"
-else
-  warn "Cursor not installed — skipping"
 fi
 
 # ── Antigravity ──────────────────────────────────────────────────────

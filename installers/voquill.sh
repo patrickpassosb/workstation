@@ -11,6 +11,11 @@ if is_installed voquill; then
     exit 0
 fi
 
+if is_fedora_like; then
+    skip_unsupported_distro "Voquill"
+    exit 0
+fi
+
 log "Installing Voquill (voquill.github.io method)..."
 curl -fsSL https://voquill.github.io/apt/install.sh | sudo bash || warn "Voquill installation failed"
 

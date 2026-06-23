@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "description": "Registry of MCP servers the security lab can install. Each entry is reviewed at setup time via configs/lab-mcp-consent.sh; nothing here is auto-registered.",
+  "mcps": [
+    {
+      "id": "aflpp",
+      "name": "AFL++ MCP",
+      "repo": "https://github.com/kevin-valerio/aflpp-mcp.git",
+      "purpose": "Drives AFL++ fuzzing from a coding agent (kicks off runs, parses crashes).",
+      "permissions": [
+        "executes afl-fuzz and AFL++ helper binaries",
+        "reads/writes the current project directory",
+        "spawns long-running processes"
+      ],
+      "register_command": "codex mcp add aflpp -- node '$AFLPP_MCP_DIR/dist/index.js'"
+    },
+    {
+      "id": "ghidra",
+      "name": "Ghidra MCP",
+      "repo": "https://github.com/bethington/ghidra-mcp.git",
+      "purpose": "Lets a coding agent read Ghidra projects (function names, decompilation, cross-refs).",
+      "permissions": [
+        "launches Ghidra and may modify the Ghidra user config directory",
+        "reads project files under any path the user grants"
+      ],
+      "register_command": "codex mcp add ghidra -- python3 -m tools.setup deploy --ghidra-path '<path-to-ghidra>'"
+    }
+  ]
+}

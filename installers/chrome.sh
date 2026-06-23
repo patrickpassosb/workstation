@@ -9,6 +9,21 @@ if is_installed google-chrome || is_installed google-chrome-stable; then
   exit 0
 fi
 
+if is_fedora_like; then
+  log "Installing Google Chrome from Google's Fedora RPM repository..."
+  sudo tee /etc/yum.repos.d/google-chrome.repo >/dev/null <<'EOF'
+[google-chrome]
+name=google-chrome
+baseurl=https://dl.google.com/linux/chrome/rpm/stable/x86_64
+enabled=1
+gpgcheck=1
+gpgkey=https://dl.google.com/linux/linux_signing_key.pub
+EOF
+  sudo dnf install -y google-chrome-stable
+  log "Google Chrome installed."
+  exit 0
+fi
+
 log "Installing Google Chrome..."
 
 # Add GPG key (needs dearmoring from ASCII-armored format)
