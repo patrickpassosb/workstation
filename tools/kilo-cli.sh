@@ -7,4 +7,4 @@ source "$SCRIPT_DIR/../lib/helpers.sh"
 
 ensure_node
 log "Installing kilo-cli..."
-bun_or_npm_install_global kilocode
+bun_or_npm_install_global kilocode  # bucket (b): no postinstall script

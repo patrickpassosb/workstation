@@ -7,4 +7,4 @@ source "$SCRIPT_DIR/../lib/helpers.sh"
 
 ensure_node
 log "Installing context-hub..."
-bun_or_npm_install_global @aisuite/chub
+bun_or_npm_install_global @aisuite/chub  # bucket (b): no postinstall script

@@ -7,4 +7,4 @@ source "$SCRIPT_DIR/../lib/helpers.sh"
 
 ensure_node
 log "Installing codex..."
-bun_or_npm_install_global @openai/codex
+bun_or_npm_install_global @openai/codex  # bucket (b): no postinstall script

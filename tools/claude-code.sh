@@ -7,4 +7,4 @@ source "$SCRIPT_DIR/../lib/helpers.sh"
 
 ensure_node
 log "Installing claude-code..."
-bun_or_npm_install_global @anthropic-ai/claude-code
+bun_or_npm_install_global @anthropic-ai/claude-code  # bucket (b): no postinstall script

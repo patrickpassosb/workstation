@@ -10,12 +10,16 @@ if is_installed brave-browser || is_installed brave-browser-stable; then
 fi
 
 if is_fedora_like; then
-  if command -v flatpak >/dev/null 2>&1 && flatpak info com.brave.Browser >/dev/null 2>&1; then
-    log "Brave browser is already installed via Flatpak."
-    exit 0
-  fi
-  log "Installing Brave browser via Flatpak..."
-  flatpak_install_if_missing com.brave.Browser
+  log "Installing Brave browser from Brave's Fedora RPM repository..."
+  sudo tee /etc/yum.repos.d/brave-browser.repo >/dev/null <<'EOF'
+[brave-browser]
+name=brave-browser
+baseurl=https://brave-browser-rpm-release.s3.brave.com/x86_64
+enabled=1
+gpgcheck=1
+gpgkey=https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
+EOF
+  sudo dnf install -y brave-browser
   log "Brave browser installed."
   exit 0
 fi

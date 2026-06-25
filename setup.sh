@@ -250,6 +250,7 @@ bash "$SCRIPT_DIR/tools/install-all.sh" || warn "Some tool installations failed"
 log ""
 bash "$SCRIPT_DIR/installers/install-all.sh" || warn "Some installers failed"
 bash "$SCRIPT_DIR/installers/agent-tools.sh" || warn "Agent tools installation failed"
+bash "$SCRIPT_DIR/configs/npm-postinstall-allowlist.sh" || warn "Trusted npm postinstalls failed"
 
 # ══════════════════════════════════════════════════════════════════════
 # Configs

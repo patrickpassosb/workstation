@@ -7,4 +7,4 @@ source "$SCRIPT_DIR/../lib/helpers.sh"
 
 ensure_node
 log "Installing vercel-cli..."
-bun_or_npm_install_global vercel
+bun_or_npm_install_global vercel  # bucket (b): no postinstall script
