@@ -4,6 +4,36 @@
 .env*
 *.pem
 *.key
+*.keystore
+*.jks
+*.keytab
+*.kdbx
+*.p12
+*.pfx
+*.gpg
+*.asc
+
+# SSH / cloud / package-manager credentials
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+id_ecdsa
+id_ecdsa.pub
+id_dsa
+id_dsa.pub
+.netrc
+.npmrc
+.pypirc
+.aws/
+.config/gcloud/
+
+# Secret-named files / dirs commonly used by tools
+secrets/
+.secret
+secrets.json
+secrets.yaml
+secrets.toml
 
 # Don't commit real dotfiles
 .zshrc

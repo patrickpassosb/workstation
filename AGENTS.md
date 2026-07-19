@@ -2,6 +2,49 @@
 
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
+## This repo (project-specific)
+
+`workstation` is a bash-only Linux bootstrap script (Ubuntu-like +
+Fedora KDE). Key context agents must know:
+
+- **Branch:** `prebuilt-only` is the active branch. It installs every
+  tool as a prebuilt binary (apt/dnf, Flatpak, GitHub releases,
+  `curl | sh`, `bun`/`npm`). The `master` branch is a separate
+  compile-from-source variant with phases/levels — don't mix the two.
+- **No secrets.** Config files ship with placeholders (e.g.
+  `# export GITHUB_MCP_PAT=<YOUR_TOKEN_HERE>`). Never commit real
+  tokens. `.gitignore` blocks `*.env`, `*.key`, `id_rsa`, `*.kdbx`,
+  `.aws/`, etc.
+- **`skills/` is the source of truth** for the user's personal agent
+  skills. `configs/centralize-skills.sh` syncs to `~/.agents/skills/`
+  (for Trae); `configs/sync-skills.sh` syncs to
+  `~/.{claude,config/opencode,gemini,kilocode}/skills/`. Don't
+  recommend removing `skills/` from the repo — it's how a fresh
+  machine gets all the user's skills installed.
+- **Sudo + system files.** `setup.sh` runs with sudo and modifies
+  `/etc/hosts`, `/etc/resolv.conf`, `/etc/apt`, `/etc/yum.repos.d`,
+  systemd timers, cron, firewall rules, browser extension policies.
+  Two scripts (`focus-mode.sh`, `dns-nextdns.sh`) set the immutable
+  bit via `chattr +i` — the undo command (`sudo chattr -i <file>`) is
+  printed at the end of each.
+- **Hardening scripts abort, not warn.** Firewall, ClamAV,
+  unattended-upgrades, NextDNS, focus-mode, npm-security failures
+  abort `setup.sh` (via `run_hardening` in setup.sh). Don't change
+  these to `|| warn` — a silent hardening failure is a security
+  posture regression.
+- **MCP consent gate.** `configs/lab-mcp-consent.sh` is interactive
+  (TTY-only). It never auto-registers MCPs. Don't bypass it.
+- **Idempotency expected.** Re-running `./setup.sh` should be safe.
+  `pkg_is_installed` requires `install ok installed` (not
+  deinstalled-but-config-remaining). `flatpak_install_if_missing`
+  checks `flatpak info` first. `is_installed` uses `command -v`, not
+  `which`.
+- **Bash style:** `#!/usr/bin/env bash`, `set -euo pipefail`,
+  snake_case, 2-space indent, `name() {` (no `function` keyword),
+  `command -v` (not `which`), `safe_curl` (not bare `curl`).
+
+## General LLM coding guidelines
+
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
 ## 1. Think Before Coding

@@ -8,6 +8,36 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/helpers.sh"
 
+# ── Concurrency lock ──────────────────────────────────────────────────
+# Two concurrent ./setup.sh runs would race on sudo apt-get, flatpak
+# remotes, dconf writes, and file creation. Hold an advisory lock for
+# the duration of this process; exit non-zero if another run is in
+# progress on this user account.
+LOCK_FD=9
+exec 9>"$HOME/.workstation-setup.lock"
+if ! flock -n 9; then
+  err "Another ./setup.sh is already running (lock held on $HOME/.workstation-setup.lock)."
+  err "If you are sure no other run is active, remove the lock file and retry."
+  exit 1
+fi
+
+# ── Temp-file cleanup trap ────────────────────────────────────────────
+# setup.sh itself creates the JetBrains Mono font zip; the sub-scripts
+# each manage their own temp files via their own traps. This trap
+# cleans up setup.sh's own artifacts on any exit (success, Ctrl-C,
+# kill, error) so a half-finished run doesn't leave /tmp litter or a
+# half-written ~/.ssh/config.
+WORKSTATION_TEMPS=()
+workstation_cleanup() {
+  for t in "${WORKSTATION_TEMPS[@]}"; do
+    [[ -n "$t" ]] && rm -f "$t" 2>/dev/null || true
+  done
+}
+trap workstation_cleanup EXIT INT TERM
+workstation_register_temp() {
+  WORKSTATION_TEMPS+=("$1")
+}
+
 # Parse CLI flags
 SKIP_SECURITY_LAB=0
 for arg in "$@"; do
@@ -23,7 +53,7 @@ Usage: ./setup.sh [--skip-security-lab] [--with-security-lab]
 USAGE
       exit 0
       ;;
-    *) warn "Unknown argument: $arg" ;;
+    *) err "Unknown argument: $arg"; exit 2 ;;
   esac
 done
 export SKIP_SECURITY_LAB
@@ -312,9 +342,9 @@ run_hardening "Focus mode (hosts)"         "configs/focus-mode.sh"
 
 # Set zsh as default shell
 if is_installed zsh; then
-  if [[ "$SHELL" != "$(which zsh)" ]]; then
+  if [[ "$SHELL" != "$(command -v zsh)" ]]; then
     log "Setting zsh as default shell..."
-    chsh -s "$(which zsh)"
+    chsh -s "$(command -v zsh)"
     log "Zsh set as default shell (takes effect on next login)"
   else
     log "Zsh is already the default shell"
