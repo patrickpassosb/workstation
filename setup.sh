@@ -285,12 +285,30 @@ bash "$SCRIPT_DIR/configs/browser-extensions.sh" || warn "Browser extensions fai
 bash "$SCRIPT_DIR/configs/defaults.sh" || warn "Default apps/wallpaper failed"
 bash "$SCRIPT_DIR/configs/sync-skills.sh" || warn "Skills sync failed"
 bash "$SCRIPT_DIR/configs/centralize-skills.sh" || warn "Skills centralization failed"
-bash "$SCRIPT_DIR/configs/npm-security.sh" || warn "NPM security setup failed"
-bash "$SCRIPT_DIR/configs/unattended-upgrades.sh" || warn "Unattended upgrades setup failed"
-bash "$SCRIPT_DIR/configs/firewall.sh" || warn "Firewall setup failed"
-bash "$SCRIPT_DIR/configs/clamav.sh" || warn "ClamAV setup failed"
-bash "$SCRIPT_DIR/configs/dns-nextdns.sh" || warn "DNS/NextDNS setup failed"
-bash "$SCRIPT_DIR/configs/focus-mode.sh" || warn "Focus Mode setup failed"
+
+# ── Security hardening ─────────────────────────────────────────────────
+# These scripts configure the firewall, ClamAV, automatic security
+# updates, NextDNS, focus mode, and npm postinstall lockdown. A failure
+# here means the user thinks they're hardened when they may not be, so
+# these abort setup.sh rather than degrade to a warning. Each script is
+# individually wrapped so its specific failure is reported clearly.
+run_hardening() {
+  local label="$1"; shift
+  local script="$1"; shift
+  if ! bash "$SCRIPT_DIR/$script"; then
+    err "Security hardening step failed: $label ($script)"
+    err "Setup aborted — fix the issue and rerun ./setup.sh."
+    exit 1
+  fi
+  log "  ✓ $label"
+}
+
+run_hardening "npm postinstall lockdown"  "configs/npm-security.sh"
+run_hardening "Unattended security upgrades" "configs/unattended-upgrades.sh"
+run_hardening "Firewall"                   "configs/firewall.sh"
+run_hardening "ClamAV"                     "configs/clamav.sh"
+run_hardening "DNS (NextDNS)"             "configs/dns-nextdns.sh"
+run_hardening "Focus mode (hosts)"         "configs/focus-mode.sh"
 
 # Set zsh as default shell
 if is_installed zsh; then
@@ -380,7 +398,7 @@ fi
 # Post-install verification for agentic tools
 log ""
 log "── Agentic Tool Verification ────────────────────────"
-for tool in ctx7 chub omx omo sisyphus voquill; do
+for tool in ctx7 chub omx sisyphus voquill; do
   if is_installed "$tool"; then
     log "  ✓ $tool is available"
   else

@@ -8,7 +8,9 @@ source "$SCRIPT_DIR/../lib/helpers.sh"
 if is_installed fd || is_installed fdfind; then
   log "fd is already installed"
 else
-  pkg_install_if_missing fd-find
+  # Package is 'fd' on Fedora, 'fd-find' on Ubuntu (binary is 'fdfind'
+  # on Ubuntu). install_first_available_pkg tries each in turn.
+  install_first_available_pkg fd fd-find
 fi
 
 if is_installed fdfind && ! is_installed fd; then

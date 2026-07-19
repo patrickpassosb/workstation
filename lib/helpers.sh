@@ -4,7 +4,6 @@
 set -euo pipefail
 
 # ── Defaults ──────────────────────────────────────────────────────────
-SRC_DIR="${SRC_DIR:-$HOME/src}"
 INSTALL_PREFIX="${INSTALL_PREFIX:-/usr/local}"
 
 # ── Logging ───────────────────────────────────────────────────────────
@@ -211,7 +210,13 @@ get_ubuntu_codename() {
 pkg_is_installed() {
   local pkg="$1"
   case "$(pkg_manager)" in
-    apt) dpkg -s "$pkg" >/dev/null 2>&1 ;;
+    apt)
+      # dpkg -s returns success for deinstalled-but-config-remaining
+      # packages (Status: deinstall ok config-files). Require a fully
+      # installed package so pkg_install_if_missing doesn't skip
+      # reinstalling a package whose binary was removed.
+      dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q '^install ok installed$'
+      ;;
     dnf) rpm -q "$pkg" >/dev/null 2>&1 ;;
     *) return 1 ;;
   esac
@@ -280,12 +285,6 @@ install_first_available_pkg() {
   return 1
 }
 
-skip_unsupported_distro() {
-  local item="$1"
-  warn "$item is not supported on $(distro_id) by this script yet — skipping."
-  return 0
-}
-
 ensure_dnf_config_manager() {
   if ! is_fedora_like; then
     return 0
@@ -320,13 +319,6 @@ apt_install_if_missing() {
     return 1
   fi
   pkg_install_if_missing "$@"
-}
-
-ensure_build_deps() {
-  log "Ensuring build dependencies: $*"
-  for pkg in "$@"; do
-    pkg_install_if_missing "$pkg" || true
-  done
 }
 
 add_apt_repo() {
@@ -379,29 +371,6 @@ flatpak_install_if_missing() {
   fi
   log "Installing Flatpak app: $app_id"
   flatpak install -y flathub "$app_id"
-}
-
-# ── Git / source helpers ─────────────────────────────────────────────
-clone_or_pull() {
-  local repo_url="$1"   # e.g. https://github.com/zsh-users/zsh.git
-  local name="$2"       # directory name under $SRC_DIR
-  local version="${3:-}" # optional tag/branch to checkout
-
-  local dest="$SRC_DIR/$name"
-  mkdir -p "$SRC_DIR"
-
-  if [[ -d "$dest/.git" ]]; then
-    log "Updating existing source: $name"
-    git -C "$dest" fetch --tags --force
-  else
-    log "Cloning $repo_url → $dest"
-    git clone "$repo_url" "$dest"
-  fi
-
-  if [[ -n "$version" ]]; then
-    log "Checking out $version"
-    git -C "$dest" checkout "$version"
-  fi
 }
 
 # ── GitHub latest release ────────────────────────────────────────────

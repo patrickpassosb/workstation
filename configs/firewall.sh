@@ -15,15 +15,28 @@ if is_fedora_like; then
   log "Setting default zone: public"
   sudo firewall-cmd --permanent --set-default-zone=public
 
+  # Explicitly set the public zone target to DROP so that even if a
+  # prior admin changed the zone's target to ACCEPT (which would make
+  # the zone accept everything by default), this setup is still safe.
+  sudo firewall-cmd --permanent --zone=public --set-target=DROP \
+    || warn "Could not set public zone target=DROP (older firewalld may not support it)"
+
   log "Allowing SSH service"
   sudo firewall-cmd --permanent --zone=public --add-service=ssh
 
   if ip link show tailscale0 > /dev/null 2>&1 || is_installed tailscale; then
     log "Trusting Tailscale interface (tailscale0)"
+    # Bind tailscale0 to the trusted zone so ALL traffic from the mesh
+    # is accepted (Tailscale already authenticates devices via WireGuard).
+    # This replaces the previous broad 100.64.0.0/10 rich-rules on the
+    # public zone, which trusted the entire 10M-address CGNAT block
+    # regardless of whether the peer was actually on your tailnet.
     sudo firewall-cmd --permanent --zone=trusted --add-interface=tailscale0 || true
+    # Allow dev ports from the Tailscale interface specifically, for
+    # both IPv4 and IPv6 (Tailscale assigns both).
     for port in 3000 5173 8000 8080; do
-      sudo firewall-cmd --permanent --zone=public \
-        --add-rich-rule="rule family=ipv4 source address=100.64.0.0/10 port port=${port} protocol=tcp accept"
+      sudo firewall-cmd --permanent --zone=trusted \
+        --add-port="${port}/tcp"
     done
   fi
 

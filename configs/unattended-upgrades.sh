@@ -13,6 +13,12 @@ if is_fedora_like; then
 
   DNF_AUTOMATIC="/etc/dnf/automatic.conf"
   if [[ -f "$DNF_AUTOMATIC" ]]; then
+    # Back up the existing config before in-place editing so the user
+    # can recover any prior customizations.
+    if ! sudo test -f "${DNF_AUTOMATIC}.bak"; then
+      sudo cp -a "$DNF_AUTOMATIC" "${DNF_AUTOMATIC}.bak"
+      log "Backed up $DNF_AUTOMATIC → ${DNF_AUTOMATIC}.bak"
+    fi
     sudo sed -i \
       -e 's/^upgrade_type = .*/upgrade_type = security/' \
       -e 's/^apply_updates = .*/apply_updates = yes/' \
@@ -56,7 +62,12 @@ log "Configuring automatic security updates..."
 
 # ── Enable automatic updates ─────────────────────────────────────────
 # Update package lists daily, install security patches daily,
-# clean up old downloaded packages weekly.
+# clean up old downloaded packages weekly. Back up any existing config
+# file first so the user can recover prior customizations.
+if [[ -f "$AUTO_UPGRADES" ]] && ! sudo test -f "${AUTO_UPGRADES}.bak"; then
+  sudo cp -a "$AUTO_UPGRADES" "${AUTO_UPGRADES}.bak"
+  log "Backed up $AUTO_UPGRADES → ${AUTO_UPGRADES}.bak"
+fi
 sudo tee "$AUTO_UPGRADES" > /dev/null <<'EOF'
 APT::Periodic::Update-Package-Lists "1";
 APT::Periodic::Unattended-Upgrade "1";
@@ -67,10 +78,14 @@ log "Auto-upgrades config written to $AUTO_UPGRADES"
 
 # ── Configure what gets upgraded ─────────────────────────────────────
 # Only install security updates — never touch regular package updates
-# that could break things. Also enable automatic reboot at 4 AM if a
-# kernel update requires it (only happens for critical security patches).
+# that could break things. Back up 50unattended-upgrades before any
+# in-place sed edits so the original defaults are recoverable.
 UNATTENDED_CONF="/etc/apt/apt.conf.d/50unattended-upgrades"
 if [[ -f "$UNATTENDED_CONF" ]]; then
+  if ! sudo test -f "${UNATTENDED_CONF}.bak"; then
+    sudo cp -a "$UNATTENDED_CONF" "${UNATTENDED_CONF}.bak"
+    log "Backed up $UNATTENDED_CONF → ${UNATTENDED_CONF}.bak"
+  fi
   # Enable automatic removal of unused dependencies
   if grep -q '//Unattended-Upgrade::Remove-Unused-Dependencies' "$UNATTENDED_CONF" 2>/dev/null; then
     sudo sed -i 's|//Unattended-Upgrade::Remove-Unused-Dependencies.*|Unattended-Upgrade::Remove-Unused-Dependencies "true";|' "$UNATTENDED_CONF"

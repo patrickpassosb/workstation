@@ -27,14 +27,27 @@ fi
 require_cmd nmcli
 
 # ── Configure systemd-resolved ──────────────────────────────────────
-RESOLVED_CONF="/etc/systemd/resolved.conf"
+# Prefer a drop-in override (/etc/systemd/resolved.conf.d/nextdns.conf)
+# over editing /etc/systemd/resolved.conf directly — a drop-in preserves
+# the distro's main file and survives future package upgrades.
+RESOLVED_DROPIN_DIR="/etc/systemd/resolved.conf.d"
+RESOLVED_DROPIN="$RESOLVED_DROPIN_DIR/nextdns.conf"
 EXPECTED_DNS="45.90.28.0#${NEXTDNS_ID}.dns.nextdns.io"
 
-if grep -q "$EXPECTED_DNS" "$RESOLVED_CONF" 2>/dev/null; then
+if grep -q "$EXPECTED_DNS" "$RESOLVED_DROPIN" 2>/dev/null; then
   log "systemd-resolved already configured for NextDNS ($NEXTDNS_ID)"
 else
-  log "Writing $RESOLVED_CONF with NextDNS ($NEXTDNS_ID)"
-  sudo tee "$RESOLVED_CONF" >/dev/null <<EOF
+  log "Writing $RESOLVED_DROPIN with NextDNS ($NEXTDNS_ID)"
+  sudo install -d -m 0755 "$RESOLVED_DROPIN_DIR"
+  # Back up the existing main resolved.conf (if any custom settings are
+  # present there) so the user can recover them after the drop-in takes
+  # precedence. The drop-in doesn't overwrite the main file, but a
+  # backup is cheap insurance against confusion later.
+  if [[ -f /etc/systemd/resolved.conf ]] && ! sudo test -f /etc/systemd/resolved.conf.bak; then
+    sudo cp -a /etc/systemd/resolved.conf /etc/systemd/resolved.conf.bak
+    log "Backed up /etc/systemd/resolved.conf → /etc/systemd/resolved.conf.bak"
+  fi
+  sudo tee "$RESOLVED_DROPIN" >/dev/null <<EOF
 [Resolve]
 DNS=45.90.28.0#${NEXTDNS_ID}.dns.nextdns.io
 DNS=2a07:a8c0::#${NEXTDNS_ID}.dns.nextdns.io
@@ -64,7 +77,10 @@ while IFS=: read -r name type; do
   for prop in ipv4.ignore-auto-dns ipv6.ignore-auto-dns; do
     current=$(nmcli -g "$prop" connection show "$name" 2>/dev/null || echo "")
     if [[ "$current" != "yes" ]]; then
-      nmcli connection modify "$name" "$prop" yes
+      nmcli connection modify "$name" "$prop" yes || {
+        warn "Failed to modify $prop on $name — leaving it unchanged"
+        continue
+      }
       changed=true
     fi
   done
@@ -151,9 +167,15 @@ log "DNS configuration complete"
 log "Test at: https://test.nextdns.io (expect status: ok, protocol: DOT)"
 
 # ── Lock resolv.conf ────────────────────────────────────────────────
-# Making it immutable prevents accidental or malicious changes.
+# Making it immutable prevents accidental or malicious changes. To
+# edit /etc/resolv.conf later, unlock it first:
+#   sudo chattr -i /etc/resolv.conf
 if lsattr /etc/resolv.conf 2>/dev/null | grep -q "^....i"; then
   sudo chattr -i /etc/resolv.conf
 fi
 log "Locking /etc/resolv.conf (making it immutable)..."
-sudo chattr +i /etc/resolv.conf || warn "Failed to lock /etc/resolv.conf (might be on a tmpfs)"
+if sudo chattr +i /etc/resolv.conf; then
+  log "  /etc/resolv.conf is now immutable. Unlock with: sudo chattr -i /etc/resolv.conf"
+else
+  warn "Failed to lock /etc/resolv.conf (might be on a tmpfs)"
+fi

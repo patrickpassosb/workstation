@@ -37,13 +37,20 @@ for skill_dir in "$SKILLS_SRC"/*/; do
     continue
   fi
 
-  # Sync to each CLI's skills directory
+  # Sync the WHOLE skill dir (not just SKILL.md) so that skills which
+  # reference sibling files (references/, assets/, prompt templates,
+  # TypeScript helpers, etc.) remain functional at the install path.
+  # Use `cp -r` with a trailing slash on the source so the *contents*
+  # of the source dir land inside the target dir.
   for target in "${SKILL_TARGETS[@]}"; do
     mkdir -p "$target/$skill_name"
-    cp "$skill_file" "$target/$skill_name/SKILL.md"
+    rm -rf "$target/$skill_name"
+    cp -r "$skill_dir" "$target/$skill_name"
   done
 
-  # Also install as a Claude Code legacy command (enables /skill-name slash command)
+  # Also install SKILL.md as a Claude Code legacy command (enables
+  # /skill-name slash command). Only the SKILL.md is used for the
+  # slash-command surface — sibling files aren't needed there.
   mkdir -p "$CLAUDE_COMMANDS"
   cp "$skill_file" "$CLAUDE_COMMANDS/${skill_name}.md"
 
