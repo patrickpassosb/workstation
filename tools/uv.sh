@@ -8,5 +8,9 @@ if is_installed uv; then
   log "uv is already installed: $(uv --version)"
 else
   log "Installing uv via official installer (latest)..."
-  curl -LsSf https://astral.sh/uv/install.sh | sh
+  # Set UV_INSTALLER_SHA256 to verify the install script. Without it,
+  # the script is still downloaded-then-executed (not piped to sh).
+  run_installer_script \
+    "https://astral.sh/uv/install.sh" \
+    "${UV_INSTALLER_SHA256:-}"
 fi

@@ -10,7 +10,13 @@ if is_installed rustc; then
 fi
 
 log "Installing Rust via rustup (latest)..."
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+# Set RUSTUP_INSTALLER_SHA256 to verify the install script. Without it,
+# the script is still downloaded-then-executed (not piped to sh). rustup
+# itself verifies the downloaded binary's signature after install.
+run_installer_script \
+  "https://sh.rustup.rs" \
+  "${RUSTUP_INSTALLER_SHA256:-}" \
+  -y
 
 # Source cargo env so subsequent commands in this session can find rustc/cargo
 if [[ -f "$HOME/.cargo/env" ]]; then

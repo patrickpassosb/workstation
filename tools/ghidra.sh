@@ -8,6 +8,11 @@ LAB_DIR="${SECURITY_LAB_DIR:-$HOME/hacking}"
 TOOLS_DIR="${SECURITY_TOOLS_DIR:-$LAB_DIR/tools}"
 GHIDRA_MCP_REPO="${GHIDRA_MCP_REPO:-https://github.com/bethington/ghidra-mcp.git}"
 GHIDRA_MCP_DIR="${GHIDRA_MCP_DIR:-$TOOLS_DIR/ghidra-mcp}"
+# Pin to a specific commit of the third-party ghidra-mcp repo for
+# supply-chain safety. Set GHIDRA_MCP_COMMIT (e.g. to a known-good
+# SHA from your last review) to enforce it; without it, the script
+# logs the resolved HEAD so you can pin it later.
+GHIDRA_MCP_COMMIT="${GHIDRA_MCP_COMMIT:-}"
 
 ensure_local_bin_dir
 mkdir -p "$TOOLS_DIR"
@@ -50,6 +55,16 @@ if [[ -d "$GHIDRA_MCP_DIR/.git" ]]; then
 else
   log "Cloning Ghidra MCP repo..."
   git clone "$GHIDRA_MCP_REPO" "$GHIDRA_MCP_DIR"
+fi
+
+if [[ -n "$GHIDRA_MCP_COMMIT" ]]; then
+  log "Pinning Ghidra MCP to commit $GHIDRA_MCP_COMMIT"
+  git -C "$GHIDRA_MCP_DIR" checkout "$GHIDRA_MCP_COMMIT" \
+    || { err "Ghidra MCP checkout of $GHIDRA_MCP_COMMIT failed"; exit 1; }
+else
+  warn "GHIDRA_MCP_COMMIT not set — using HEAD of default branch."
+  log "  resolved HEAD: $(git -C "$GHIDRA_MCP_DIR" rev-parse HEAD)"
+  log "  to pin, set GHIDRA_MCP_COMMIT=$(git -C "$GHIDRA_MCP_DIR" rev-parse HEAD) and rerun"
 fi
 
 warn "Ghidra MCP deploy is intentionally manual because it can modify Ghidra user config and launch Ghidra."

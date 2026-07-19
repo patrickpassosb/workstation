@@ -16,7 +16,18 @@ if [[ "$(id -u)" -eq 0 ]]; then
 fi
 
 log "Installing Homebrew..."
-NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+# Pin to a specific Homebrew/install ref instead of HEAD. Set
+# HOMEBREW_INSTALLER_SHA256 to verify the install script. Without it,
+# the script is still downloaded-then-executed (not piped to bash).
+# NONINTERACTIVE=1 is honored by Homebrew's install.sh via env var.
+export NONINTERACTIVE=1
+HOMEBREW_TAG="${HOMEBREW_TAG:-master}"
+if ! run_installer_script \
+  "https://raw.githubusercontent.com/Homebrew/install/${HOMEBREW_TAG}/install.sh" \
+  "${HOMEBREW_INSTALLER_SHA256:-}"; then
+  err "Homebrew install failed"
+  exit 1
+fi
 
 # Add brew to PATH for this session (Linux default location)
 if [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then

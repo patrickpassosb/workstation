@@ -14,6 +14,10 @@ fi
 
 log "Pulling Nuclei Docker image: $IMAGE"
 docker pull "$IMAGE" || warn "Nuclei image pull failed; the wrapper can still pull/run it later"
+if [[ "$IMAGE" != *@sha256:* ]]; then
+  warn "NUCLEI_DOCKER_IMAGE uses a mutable tag ($IMAGE); pin a digest for reproducibility:"
+  log "  resolved digest: $(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE" 2>/dev/null || echo 'not yet pulled')"
+fi
 
 install_docker_wrapper nuclei-docker "$IMAGE" /work
 log "Run: nuclei-docker -h"

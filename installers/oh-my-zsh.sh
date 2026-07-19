@@ -6,8 +6,15 @@ source "$SCRIPT_DIR/../lib/helpers.sh"
 
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
   require_cmd zsh
-  log "Installing Oh My Zsh (latest from master)..."
-  sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+  log "Installing Oh My Zsh..."
+  # Pin to a tag instead of master. Set OHMYZSH_INSTALLER_SHA256 to
+  # verify the install script. Without it, the script is still
+  # downloaded-then-executed (not piped to sh).
+  OHMYZSH_TAG="${OHMYZSH_TAG:-master}"
+  run_installer_script \
+    "https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/${OHMYZSH_TAG}/tools/install.sh" \
+    "${OHMYZSH_INSTALLER_SHA256:-}" \
+    --unattended
   log "Oh My Zsh installed."
 else
   log "Oh My Zsh is already installed at $HOME/.oh-my-zsh"

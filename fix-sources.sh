@@ -33,25 +33,40 @@ for src in /etc/apt/sources.list.d/docker.list /etc/apt/sources.list.d/insync.li
     continue
   fi
   checked+=("$src")
-  # Capture the codenames actually present in the file (one occurrence is typical).
-  present="$(grep -oE '[a-z]+' "$src" 2>/dev/null | sort -u || true)"
   if grep -qF "$target_codename" "$src" 2>/dev/null; then
     log "fix-sources: $src already references $target_codename — no change"
     continue
   fi
-  # Find the first non-target codename in the file and rewrite it.
+
+  # Parse only the suite/codename column of each `deb ...` line (the
+  # 3rd whitespace-separated field after "deb [options]"). The previous
+  # implementation grepped every [a-z]+ token in the file — which
+  # included URL components like "docker", "download", "com" — and rewrote
+  # the first one, corrupting URLs.
+  #   e.g. `deb [arch=amd64 signed-by=...] https://download.docker.com/linux/ubuntu noble stable`
+  #                                                     ^^^^^^  ^^^^^  ^^^^^  ^^^^^  <- URL tokens, NOT codenames
+  # Only `noble` (the suite field) should ever be rewritten.
   replacement_done=0
-  for old in $present; do
-    [[ "$old" == "$target_codename" ]] && continue
-    [[ "$old" == "stable" || "$old" == "main" || "$old" == "component" ]] && continue
-    [[ ${#old} -lt 4 ]] && continue
-    if sudo sed -i "s/$old/$target_codename/g" "$src"; then
-      log "fix-sources: $src: rewrote $old -> $target_codename"
+  while IFS= read -r line; do
+    # Strip leading "deb" and any "[...]" options block.
+    stripped="${line#deb}"
+    stripped="${stripped#\ \[[^\]]*\]}"
+    # Now the first whitespace-separated token is the URL, the second is
+    # the suite/codename, the rest is components.
+    suite="$(printf '%s' "$stripped" | awk '{print $2}')"
+    [[ -z "$suite" ]] && continue
+    [[ "$suite" == "$target_codename" ]] && continue
+    [[ "$suite" == "stable" || "$suite" == "main" ]] && continue
+    # Use a quoted sed substitution to avoid regex interpretation of the
+    # (letters-only) suite token.
+    if sudo sed -i "s|${suite}|${target_codename}|g" "$src"; then
+      log "fix-sources: $src: rewrote suite $suite -> $target_codename"
       patched+=("$src")
       replacement_done=1
       break
     fi
-  done
+  done < <(grep -E '^deb' "$src" 2>/dev/null)
+
   if [[ $replacement_done -eq 0 ]]; then
     log "fix-sources: $src: no codename-bearing lines to patch"
   fi

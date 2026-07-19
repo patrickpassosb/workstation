@@ -12,6 +12,109 @@ log()  { printf '[INFO]  %s\n' "$*"; }
 warn() { printf '[WARN]  %s\n' "$*"; }
 err()  { printf '[ERROR] %s\n' "$*"; }
 
+# ── Safe curl ─────────────────────────────────────────────────────────
+# Wrapper that enforces --fail, retries, and timeouts on every network
+# fetch. Pass through any extra curl args after the URL.
+#
+#   safe_curl <url> [extra curl args...]
+#   safe_curl -o <path> <url> [extra curl args...]
+safe_curl() {
+  local out=""
+  if [[ "$1" == "-o" ]]; then
+    out="$2"
+    shift 2
+  fi
+  local url="$1"
+  shift
+  if [[ -n "$out" ]]; then
+    curl --fail --retry 3 --retry-delay 2 --connect-timeout 30 --max-time 600 \
+      --no-config -sSL -o "$out" "$url" "$@"
+  else
+    curl --fail --retry 3 --retry-delay 2 --connect-timeout 30 --max-time 600 \
+      --no-config -sSL "$url" "$@"
+  fi
+}
+
+# Download a URL to a temp file, verify its SHA256, then print the temp
+# path to stdout for the caller to use. Aborts on mismatch.
+#
+#   download_and_verify <url> <expected_sha256>
+#   tmp="$(download_and_verify "$url" "$sha")"
+download_and_verify() {
+  local url="$1" expected="$2"
+  local tmp
+  tmp="$(mktemp)"
+  trap 'rm -f "$tmp"' RETURN
+  if ! safe_curl -o "$tmp" "$url"; then
+    err "Download failed: $url"
+    return 1
+  fi
+  local actual
+  actual="$(sha256sum "$tmp" | cut -d' ' -f1)"
+  if [[ "$actual" != "$expected" ]]; then
+    err "Checksum mismatch for $url"
+    err "  expected: $expected"
+    err "  actual:   $actual"
+    return 1
+  fi
+  printf '%s\n' "$tmp"
+}
+
+# Download a URL to a temp file, verify a detached PGP signature, then
+# print the temp path. Caller must supply the signing key via
+# `gpg --import` beforehand (or pass --keyserver via $GPG_KEYSERVER).
+#
+#   download_and_verify_sig <url> <sig_url>
+download_and_verify_sig() {
+  local url="$1" sig_url="$2"
+  local tmp sig
+  tmp="$(mktemp)"
+  sig="$(mktemp)"
+  trap 'rm -f "$tmp" "$sig"' RETURN
+  safe_curl -o "$tmp" "$url" || { err "Download failed: $url"; return 1; }
+  safe_curl -o "$sig" "$sig_url" || { err "Signature download failed: $sig_url"; return 1; }
+  if ! gpg --verify "$sig" "$tmp" 2>/dev/null; then
+    err "GPG signature verification failed for $url"
+    return 1
+  fi
+  printf '%s\n' "$tmp"
+}
+
+# Download an installer script to a temp file, verify its SHA256 if
+# provided, then execute it with the provided args. Use this instead of
+# `curl ... | sh` so the bytes that run are the bytes that were verified.
+#
+#   run_installer_script <url> [expected_sha256] [args...]
+#   run_installer_script <url> "" [args...]      # no verification
+run_installer_script() {
+  local url="$1" expected="${2:-}"
+  shift 2
+  local tmp
+  tmp="$(mktemp)"
+  trap 'rm -f "$tmp"' RETURN
+  if ! safe_curl -o "$tmp" "$url"; then
+    err "Installer download failed: $url"
+    return 1
+  fi
+  if [[ -n "$expected" ]]; then
+    local actual
+    actual="$(sha256sum "$tmp" | cut -d' ' -f1)"
+    if [[ "$actual" != "$expected" ]]; then
+      err "Installer checksum mismatch for $url"
+      err "  expected: $expected"
+      err "  actual:   $actual"
+      return 1
+    fi
+  else
+    warn "Running installer without checksum verification: $url"
+    log "  downloaded SHA256: $(sha256sum "$tmp" | cut -d' ' -f1)"
+  fi
+  # shellcheck disable=SC2068
+  bash "$tmp" $@
+  local rc=$?
+  return $rc
+}
+
 # ── Dependency checks ────────────────────────────────────────────────
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -236,10 +339,28 @@ add_apt_repo() {
     return 1
   fi
 
+  # Validate name — it flows into a path under /etc/apt/keyrings/ and
+  # /etc/apt/sources.list.d/, so reject anything that could traverse.
+  if [[ ! "$name" =~ ^[A-Za-z0-9._-]+$ ]]; then
+    err "add_apt_repo: invalid repo name '$name' (must match ^[A-Za-z0-9._-]+\$)"
+    return 1
+  fi
+
   sudo install -d -m 0755 /etc/apt/keyrings
   if [[ ! -f "/etc/apt/keyrings/${name}-archive-keyring.gpg" ]]; then
     log "Adding GPG key for $name"
-    sudo curl -fsSLo "/etc/apt/keyrings/${name}-archive-keyring.gpg" "$gpg_url"
+    # Download as the user (curl reads ~/.curlrc — avoid as root), then
+    # install into the keyring as root.
+    local tmp_key
+    tmp_key="$(mktemp)"
+    if safe_curl -o "$tmp_key" "$gpg_url"; then
+      sudo install -m 0644 "$tmp_key" "/etc/apt/keyrings/${name}-archive-keyring.gpg"
+    else
+      err "Failed to download GPG key from $gpg_url"
+      rm -f "$tmp_key"
+      return 1
+    fi
+    rm -f "$tmp_key"
   fi
   echo "$repo_line" | sudo tee "/etc/apt/sources.list.d/${name}.list" >/dev/null
   sudo apt-get update -y
@@ -287,12 +408,19 @@ clone_or_pull() {
 # Fetches the latest release tag from a GitHub repo.
 #   github_latest_tag <owner/repo>
 # Returns the tag name (e.g. "v0.25.0").
+# Uses GITHUB_TOKEN env var if present to avoid 60/hr unauthenticated
+# rate limit. Returns non-zero on failure (callers should handle).
 github_latest_tag() {
   local repo="$1"
-  local tag
-  tag="$(curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" \
-    | grep -m1 '"tag_name"' | cut -d'"' -f4 | tr -d '[:space:]')"
-  echo "$tag"
+  local auth_args=()
+  if [[ -n "${GITHUB_TOKEN:-${GH_TOKEN:-}}" ]]; then
+    auth_args=(-H "Authorization: Bearer ${GITHUB_TOKEN:-${GH_TOKEN}}")
+  fi
+  safe_curl "https://api.github.com/repos/${repo}/releases/latest" \
+    -H "Accept: application/vnd.github+json" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "${auth_args[@]}" \
+    | grep -m1 '"tag_name"' | cut -d'"' -f4 | tr -d '[:space:]'
 }
 
 # ── GitHub release installer ─────────────────────────────────────────
@@ -316,7 +444,7 @@ github_release_install() {
   tmp_dir="$(mktemp -d)"
 
   log "Downloading ${repo} ${tag} from GitHub releases..."
-  curl -fSL "$url" -o "$tmp_dir/$asset"
+  safe_curl -o "$tmp_dir/$asset" "$url"
 
   case "$asset" in
     *.tar.gz|*.tgz) tar -xzf "$tmp_dir/$asset" -C "$tmp_dir" ;;

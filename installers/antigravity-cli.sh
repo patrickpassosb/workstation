@@ -9,8 +9,12 @@ if is_installed antigravity; then
   exit 0
 fi
 
-log "Installing Antigravity CLI (curl|bash)..."
-if ! curl -fsSL https://antigravity.google/cli/install.sh | bash; then
+log "Installing Antigravity CLI..."
+# Set ANTIGRAVITY_INSTALLER_SHA256 to verify the install script. Without
+# it, the script is still downloaded-then-executed (not piped to bash).
+if ! run_installer_script \
+  "https://antigravity.google/cli/install.sh" \
+  "${ANTIGRAVITY_INSTALLER_SHA256:-}"; then
   err "Antigravity CLI install failed"
   exit 1
 fi

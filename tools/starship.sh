@@ -8,5 +8,10 @@ if is_installed starship; then
   log "starship is already installed: $(starship --version)"
 else
   log "Installing starship via official installer (latest)..."
-  curl -sS https://starship.rs/install.sh | sh -s -- -y
+  # Set STARSHIP_INSTALLER_SHA256 to verify the install script. Without
+  # it, the script is still downloaded-then-executed (not piped to sh).
+  run_installer_script \
+    "https://starship.rs/install.sh" \
+    "${STARSHIP_INSTALLER_SHA256:-}" \
+    --yes
 fi

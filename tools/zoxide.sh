@@ -10,7 +10,13 @@ else
   if pkg_available zoxide; then
     pkg_install_if_missing zoxide
   else
-    log "Installing zoxide via official installer (latest)..."
-    curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
+    log "Installing zoxide via official installer..."
+    # Pin to a specific release tag (NOT main) so a compromised upstream
+    # commit can't silently change the install script. Set
+    # ZOXIDE_INSTALLER_SHA256 to verify the bytes.
+    zoxide_tag="${ZOXIDE_VERSION:-v0.9.7}"
+    run_installer_script \
+      "https://raw.githubusercontent.com/ajeetdsouza/zoxide/${zoxide_tag}/install.sh" \
+      "${ZOXIDE_INSTALLER_SHA256:-}"
   fi
 fi
