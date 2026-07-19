@@ -16,11 +16,9 @@ log "═════════════════════════
 if ! is_installed bun; then
     warn "Bun is not installed. Attempting to install tools with npm fallback..."
     INSTALLER="npm install -g"
-    RUNNER="npx"
 else
     log "Using Bun for tool installation"
     INSTALLER="bun install -g"
-    RUNNER="bunx"
 fi
 
 # Pinned versions — bump intentionally and review the package's

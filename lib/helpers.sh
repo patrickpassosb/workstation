@@ -478,6 +478,17 @@ bun_or_npm_install() {
   fi
 }
 
+# Install a Node/TS global CLI via bun (or npm fallback). Ensures Node
+# is available first. Use this for any npm-package-backed CLI so the
+# boilerplate (ensure_node + log + install) lives in one place.
+#   install_node_cli <log_label> <npm_package>
+install_node_cli() {
+  local label="$1" pkg="$2"
+  ensure_node
+  log "Installing $label..."
+  bun_or_npm_install_global "$pkg"
+}
+
 # ── Security lab helpers ─────────────────────────────────────────────
 # Idempotently create an internal Docker network with no egress.
 # Used by hardened container wrappers to prevent accidental exfiltration.

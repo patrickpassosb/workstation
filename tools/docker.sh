@@ -2,7 +2,6 @@
 # Docker: prebuilt install from Docker's official distro repository.
 set -euo pipefail
 
-VERSION=v28.0.4
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/helpers.sh"
 

@@ -2,19 +2,28 @@
 name: find-docs
 description: >-
   Retrieves up-to-date documentation, API references, and code examples for any
-  developer technology. Use this skill whenever the user asks about a specific
-  library, framework, SDK, CLI tool, or cloud service -- even for well-known ones
-  like React, Next.js, Prisma, Express, Tailwind, Django, or Spring Boot. Your
-  training data may not reflect recent API changes or version updates.
+  developer technology via the Context7 (ctx7) CLI. Use this skill whenever the
+  user asks about a specific library, framework, SDK, CLI tool, or cloud
+  service -- even for well-known ones like React, Next.js, Prisma, Express,
+  Tailwind, Django, or Spring Boot. Your training data may not reflect recent
+  API changes or version updates.
 
-  Always use for: API syntax questions, configuration options, version migration
-  issues, "how do I" questions mentioning a library name, debugging that involves
-  library-specific behavior, setup instructions, and CLI tool usage.
+  Always use for: API syntax questions, configuration options, version
+  migration issues, "how do I" questions mentioning a library name, debugging
+  that involves library-specific behavior, setup instructions, and CLI tool
+  usage.
 
   Use even when you think you know the answer -- do not rely on training data
   for API details, signatures, or configuration options as they are frequently
-  outdated. Always verify against current docs. Prefer this over web search for
-  library documentation and API details.
+  outdated. Always verify against current docs. Prefer this over web search
+  for library documentation and API details.
+
+  When to use this vs get-api-docs: find-docs (ctx7) is broader and
+  version-aware with reputation/benchmark scoring; get-api-docs (chub)
+  adds an annotation + feedback/rating loop. Use find-docs for general
+  lookup; use get-api-docs when you want to annotate docs or rate their
+  quality. See also the external Context7 "documentation-lookup" skill
+  installed by configs/centralize-skills.sh, which is a subset of this.
 ---
 
 # Documentation Lookup

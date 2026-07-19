@@ -1,11 +1,18 @@
 ---
 name: get-api-docs
 description: >
-  Use this skill when you need documentation for a third-party library, SDK, or API
-  before writing code that uses it — for example, "use the OpenAI API", "call the
-  Stripe API", "use the Anthropic SDK", "query Pinecone", or any time the user asks
-  you to write code against an external service and you need current API reference.
-  Fetch the docs with chub before answering, rather than relying on training knowledge.
+  Use this skill when you need documentation for a third-party library, SDK, or
+  API before writing code that uses it -- for example, "use the OpenAI API",
+  "call the Stripe API", "use the Anthropic SDK", "query Pinecone", or any time
+  the user asks you to write code against an external service and you need
+  current API reference. Fetch the docs with chub before answering, rather
+  than relying on training knowledge.
+
+  When to use this vs find-docs: get-api-docs (chub) adds an annotation
+  + feedback/rating loop for docs you fetch; find-docs (ctx7) is broader
+  and version-aware with reputation/benchmark scoring. Use get-api-docs
+  when you want to annotate docs or rate their quality; use find-docs
+  for general lookup.
 ---
 
 # Get API Docs via chub

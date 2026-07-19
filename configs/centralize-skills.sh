@@ -16,33 +16,43 @@ log "═════════════════════════
 mkdir -p "$CENTRAL_DIR"
 log "Ensured central skill directory: $CENTRAL_DIR"
 
-# 2. Sync local skills from this repository
-LOCAL_SKILLS=(
-    "get-api-docs"
-    "ralph-implement"
-    "ralph-init"
-    "ralph-interview"
-    "ralph-loop"
-)
-
-log "Syncing local skills..."
-for skill in "${LOCAL_SKILLS[@]}"; do
-    SRC="$SCRIPT_DIR/../skills/$skill"
-    if [[ -d "$SRC" ]]; then
-        cp -r "$SRC" "$CENTRAL_DIR/"
-        log "  ✓ $skill"
-    else
-        warn "  ✗ Skill not found in repo: $skill"
+# 2. Sync ALL local skills from this repository (full-dir copy, like
+# sync-skills.sh, so sibling files like references/, assets/, prompt
+# templates, TypeScript helpers are preserved). Previously this was a
+# hardcoded 5-name list (get-api-docs + ralph-*); new skills had to be
+# added to the list manually. Iterating skills/*/ makes every skill in
+# the repo available to Trae automatically.
+SKILLS_SRC="$SCRIPT_DIR/../skills"
+synced=0
+skipped=0
+if [[ -d "$SKILLS_SRC" ]]; then
+  log "Syncing local skills from $SKILLS_SRC..."
+  for skill_dir in "$SKILLS_SRC"/*/; do
+    [[ -d "$skill_dir" ]] || continue
+    skill_name="$(basename "$skill_dir")"
+    if [[ ! -f "$skill_dir/SKILL.md" ]]; then
+      warn "  ✗ $skill_name: no SKILL.md — skipping"
+      skipped=$((skipped + 1))
+      continue
     fi
-done
+    rm -rf "$CENTRAL_DIR/$skill_name"
+    cp -r "$skill_dir" "$CENTRAL_DIR/$skill_name"
+    log "  ✓ $skill_name"
+    synced=$((synced + 1))
+  done
+else
+  warn "Skills source directory not found: $SKILLS_SRC"
+fi
+log "Local skills: $synced synced, $skipped skipped"
 
-# 3. Sync external Context7 documentation-lookup skill
-# Override with CONTEXT7_SKILL=/path/to/skill when this directory does not exist.
+# 3. Sync external Context7 documentation-lookup skill (third-party,
+# from the Gemini extension install path). Override with
+# CONTEXT7_SKILL=/path/to/skill when this directory does not exist.
 CONTEXT7_SKILL="${CONTEXT7_SKILL:-$HOME/.gemini/extensions/context7/plugins/claude/context7/skills/documentation-lookup}"
 
 log "Syncing Context7 external skills..."
 if [[ -d "$CONTEXT7_SKILL" ]]; then
-    # We copy the folder to the central dir
+    # Copy the folder to the central dir
     cp -r "$CONTEXT7_SKILL" "$CENTRAL_DIR/"
     log "  ✓ documentation-lookup (Context7)"
 else

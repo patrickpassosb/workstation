@@ -6,9 +6,11 @@ source "$SCRIPT_DIR/../lib/helpers.sh"
 
 # StayFree is a browser extension for screen-time tracking.
 # There is no standalone desktop app to install via a package manager.
+# The Chrome Web Store URL below is the direct extension page; Firefox
+# is the same extension on AMO.
 
-warn "StayFree is a browser extension. Install from your browser's extension store."
-warn "  Chrome: https://chrome.google.com/webstore/detail/stayfree"
-warn "  Firefox: https://addons.mozilla.org/en-US/firefox/addon/stayfree/"
-
-log "No automated installation needed for StayFree."
+log "StayFree is a browser extension — no desktop install needed."
+log "  Chrome:  https://chrome.google.com/webstore/detail/stayfree/mkjknkfhfhkapgibfmmajbdbmimgphhb"
+log "  Firefox: https://addons.mozilla.org/en-US/firefox/addon/stayfree/"
+log "If you use managed browser extension policies (configs/browser-extensions.sh),"
+log "add the Chrome extension ID 'mkjknkfhfhkapgibfmmajbdbmimgphhb' there."
