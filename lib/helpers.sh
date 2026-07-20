@@ -12,11 +12,20 @@ warn() { printf '[WARN]  %s\n' "$*"; }
 err()  { printf '[ERROR] %s\n' "$*"; }
 
 # ── Safe curl ─────────────────────────────────────────────────────────
-# Wrapper that enforces --fail, retries, and timeouts on every network
-# fetch. Pass through any extra curl args after the URL.
+# Wrapper that enforces --fail, retries, timeouts, and TLS hardening
+# on every network fetch. Pass through any extra curl args after the
+# URL.
 #
 #   safe_curl <url> [extra curl args...]
 #   safe_curl -o <path> <url> [extra curl args...]
+#
+# Note on --no-config: an earlier version of this helper passed
+# --no-config to prevent curl from reading ~/.curlrc as root. Modern
+# curl (>= 8.x) rejects --no-config ("the given option cannot be
+# reversed with a --no- prefix"), which broke every safe_curl call.
+# We drop the flag — curl does not read ~/.curlrc when invoked with
+# explicit args (and the caller can pass -q if they really want to
+# suppress it).
 safe_curl() {
   local out=""
   if [[ "$1" == "-o" ]]; then
@@ -27,61 +36,62 @@ safe_curl() {
   shift
   if [[ -n "$out" ]]; then
     curl --fail --retry 3 --retry-delay 2 --connect-timeout 30 --max-time 600 \
-      --no-config -sSL -o "$out" "$url" "$@"
+      --proto '=https' --tlsv1.2 -sSL -o "$out" "$url" "$@"
   else
     curl --fail --retry 3 --retry-delay 2 --connect-timeout 30 --max-time 600 \
-      --no-config -sSL "$url" "$@"
+      --proto '=https' --tlsv1.2 -sSL "$url" "$@"
   fi
 }
 
-# Download a URL to a temp file, verify its SHA256, then print the temp
-# path to stdout for the caller to use. Aborts on mismatch.
+# Download a URL to a caller-provided output path, verifying its SHA256.
+# The caller owns the output file and is responsible for cleanup.
 #
-#   download_and_verify <url> <expected_sha256>
-#   tmp="$(download_and_verify "$url" "$sha")"
+#   download_and_verify <url> <expected_sha256> <out_path>
 download_and_verify() {
-  local url="$1" expected="$2"
-  local tmp
-  tmp="$(mktemp)"
-  trap 'rm -f "$tmp"' RETURN
-  if ! safe_curl -o "$tmp" "$url"; then
+  local url="$1" expected="$2" out="$3"
+  if ! safe_curl -o "$out" "$url"; then
     err "Download failed: $url"
     return 1
   fi
   local actual
-  actual="$(sha256sum "$tmp" | cut -d' ' -f1)"
+  actual="$(sha256sum "$out" | cut -d' ' -f1)"
   if [[ "$actual" != "$expected" ]]; then
     err "Checksum mismatch for $url"
     err "  expected: $expected"
     err "  actual:   $actual"
     return 1
   fi
-  printf '%s\n' "$tmp"
 }
 
-# Download a URL to a temp file, verify a detached PGP signature, then
-# print the temp path. Caller must supply the signing key via
-# `gpg --import` beforehand (or pass --keyserver via $GPG_KEYSERVER).
+# Download a URL to a caller-provided output path, verifying a detached
+# PGP signature. Caller must supply the signing key via `gpg --import`
+# beforehand.
 #
-#   download_and_verify_sig <url> <sig_url>
+#   download_and_verify_sig <url> <sig_url> <out_path>
 download_and_verify_sig() {
-  local url="$1" sig_url="$2"
-  local tmp sig
-  tmp="$(mktemp)"
+  local url="$1" sig_url="$2" out="$3"
+  local sig
   sig="$(mktemp)"
-  trap 'rm -f "$tmp" "$sig"' RETURN
-  safe_curl -o "$tmp" "$url" || { err "Download failed: $url"; return 1; }
-  safe_curl -o "$sig" "$sig_url" || { err "Signature download failed: $sig_url"; return 1; }
-  if ! gpg --verify "$sig" "$tmp" 2>/dev/null; then
+  trap 'rm -f "$sig"' RETURN
+  if ! safe_curl -o "$out" "$url"; then
+    err "Download failed: $url"
+    return 1
+  fi
+  if ! safe_curl -o "$sig" "$sig_url"; then
+    err "Signature download failed: $sig_url"
+    return 1
+  fi
+  if ! gpg --verify "$sig" "$out" 2>/dev/null; then
     err "GPG signature verification failed for $url"
     return 1
   fi
-  printf '%s\n' "$tmp"
 }
 
 # Download an installer script to a temp file, verify its SHA256 if
 # provided, then execute it with the provided args. Use this instead of
-# `curl ... | sh` so the bytes that run are the bytes that were verified.
+# `curl ... | sh` so the bytes that run are the bytes that were
+# verified. The temp file is cleaned up via a RETURN trap (safe here —
+# the script is executed inside the function before return).
 #
 #   run_installer_script <url> [expected_sha256] [args...]
 #   run_installer_script <url> "" [args...]      # no verification
@@ -108,10 +118,7 @@ run_installer_script() {
     warn "Running installer without checksum verification: $url"
     log "  downloaded SHA256: $(sha256sum "$tmp" | cut -d' ' -f1)"
   fi
-  # shellcheck disable=SC2068
-  bash "$tmp" $@
-  local rc=$?
-  return $rc
+  bash "$tmp" "$@"
 }
 
 # ── Dependency checks ────────────────────────────────────────────────
@@ -342,17 +349,18 @@ add_apt_repo() {
   if [[ ! -f "/etc/apt/keyrings/${name}-archive-keyring.gpg" ]]; then
     log "Adding GPG key for $name"
     # Download as the user (curl reads ~/.curlrc — avoid as root), then
-    # install into the keyring as root.
+    # install into the keyring as root. RETURN trap ensures the temp
+    # file is cleaned up on any return path (including set -e aborts
+    # from sudo install).
     local tmp_key
     tmp_key="$(mktemp)"
+    trap 'rm -f "$tmp_key"' RETURN
     if safe_curl -o "$tmp_key" "$gpg_url"; then
       sudo install -m 0644 "$tmp_key" "/etc/apt/keyrings/${name}-archive-keyring.gpg"
     else
       err "Failed to download GPG key from $gpg_url"
-      rm -f "$tmp_key"
       return 1
     fi
-    rm -f "$tmp_key"
   fi
   echo "$repo_line" | sudo tee "/etc/apt/sources.list.d/${name}.list" >/dev/null
   sudo apt-get update -y

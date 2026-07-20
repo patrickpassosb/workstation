@@ -174,7 +174,7 @@ See `docs/security-lab.md` for the quick operator notes, including `LAB_RELAXED=
 | `OBSIDIAN_VAULT_REPO` | `https://github.com/patrickpassosb/obsidian-vault.git` | Vault repo to clone/update |
 | `OBSIDIAN_VAULT_DIR` | `~/Documents/Obsidian Vault` | Local Obsidian vault path |
 | `OBSIDIAN_VAULT_ID` | `f44ad3882fd559bb` | Obsidian vault id for `obsidian.json` |
-| `OBSIDIAN_APP_DIR` | `~/Applications` | Where the Obsidian AppImage is stored |
+| `OBSIDIAN_APP_DIR` | `~/AppImage` | Where the Obsidian AppImage is stored |
 | `OBSIDIAN_VERSION` | *(latest GitHub tag)* | Pinned Obsidian release tag |
 | `SECURITY_LAB_DIR` | `~/hacking` | Security lab root |
 | `SECURITY_TOOLS_DIR` | `$SECURITY_LAB_DIR/tools` | Where MCP repos are cloned |

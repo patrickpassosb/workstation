@@ -15,8 +15,10 @@ fi
 log "Pulling Nuclei Docker image: $IMAGE"
 docker pull "$IMAGE" || warn "Nuclei image pull failed; the wrapper can still pull/run it later"
 if [[ "$IMAGE" != *@sha256:* ]]; then
-  warn "NUCLEI_DOCKER_IMAGE uses a mutable tag ($IMAGE); pin a digest for reproducibility:"
-  log "  resolved digest: $(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE" 2>/dev/null || echo 'not yet pulled')"
+  warn "NUCLEI_DOCKER_IMAGE uses a mutable tag ($IMAGE); pin a digest for reproducibility."
+  log "  resolved manifest-list digest: $(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE" 2>/dev/null || echo 'not yet pulled')"
+  log "  (Note: for multi-arch images this is the manifest-list digest, not the per-arch image digest.)"
+  log "  (To get a per-arch image digest, run: docker image inspect $IMAGE --format='{{.Id}}')"
 fi
 
 install_docker_wrapper nuclei-docker "$IMAGE" /work

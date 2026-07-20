@@ -65,7 +65,7 @@ for src in /etc/apt/sources.list.d/docker.list /etc/apt/sources.list.d/insync.li
       replacement_done=1
       break
     fi
-  done < <(grep -E '^deb' "$src" 2>/dev/null)
+  done < <(grep -E '^deb[[:space:]]' "$src" 2>/dev/null)
 
   if [[ $replacement_done -eq 0 ]]; then
     log "fix-sources: $src: no codename-bearing lines to patch"

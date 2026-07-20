@@ -62,7 +62,7 @@ log "── Developer utilities ────────────────
 for name in bat fd; do
   run_tool "$name"
 done
-for name in eza delta zoxide flameshot uv bun starship gh docker lazygit lazydocker opencode tailscale easyeffects; do
+for name in eza delta zoxide uv bun starship gh docker lazygit lazydocker opencode tailscale; do
   run_tool "$name"
 done
 
@@ -91,6 +91,8 @@ FLATPAK_APPS=(
   "audacity:org.audacityteam.Audacity"
   "gimp:org.gimp.GIMP"
   "bitwarden:com.bitwarden.desktop"
+  "flameshot:org.flameshot.Flameshot"
+  "easyeffects:com.github.wwmm.easyeffects"
 )
 for entry in "${FLATPAK_APPS[@]}"; do
   label="${entry%%:*}"
@@ -115,6 +117,13 @@ log ""
 log "═══════════════════════════════════════════════════════"
 log "  Node.js/TS CLIs"
 log "═══════════════════════════════════════════════════════"
+
+# bun.sh installs to ~/.bun/bin/bun and writes an export line to the
+# shell rc file, but the current process doesn't re-source rc files
+# after the subprocess exits. Add bun to PATH here so the Node-CLI
+# loop below actually uses bun (10-20x faster than npm) instead of
+# falling back to npm.
+[[ -f "$HOME/.bun/bin/bun" ]] && export PATH="$HOME/.bun/bin:$PATH"
 
 # Format: "log_label:npm_package". Keep these at @latest by default;
 # bump to a pinned version (pkg@x.y.z) intentionally when reviewing.

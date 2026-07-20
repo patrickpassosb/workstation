@@ -42,7 +42,7 @@ sudo install -d -m 0755 /etc/apt/keyrings
 # Download as the user (curl reads ~/.curlrc as root — avoid), then
 # install the dearmored key as root.
 tmp_keyring="$(mktemp)"
-trap 'rm -f "$tmp_keyring"' RETURN
+trap 'rm -f "$tmp_keyring"' EXIT
 safe_curl -o "$tmp_keyring" https://dl.google.com/linux/linux_signing_key.pub
 sudo gpg --dearmor --yes -o /etc/apt/keyrings/google-chrome-keyring.gpg "$tmp_keyring"
 

@@ -25,7 +25,7 @@ else
     asset="git-delta_${VERSION}_${delta_deb_arch}.deb"
     url="https://github.com/dandavison/delta/releases/download/${tag}/${asset}"
     tmp_deb="$(mktemp --suffix=.deb)"
-    trap 'rm -f "$tmp_deb"' RETURN
+    trap 'rm -f "$tmp_deb"' EXIT
     safe_curl -o "$tmp_deb" "$url"
     sudo dpkg -i "$tmp_deb"
   else

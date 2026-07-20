@@ -36,7 +36,7 @@ case "$(uname -m)" in
 esac
 
 tmp_deb="$(mktemp --suffix=".deb")"
-trap 'rm -f "$tmp_deb"' RETURN
+trap 'rm -f "$tmp_deb"' EXIT
 
 # Use safe_curl (--fail --retry --max-time) instead of bare curl -fL.
 if ! safe_curl -o "$tmp_deb" "https://zoom.us/client/latest/zoom_${zoom_arch}.deb"; then

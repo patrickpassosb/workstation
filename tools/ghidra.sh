@@ -59,8 +59,15 @@ fi
 
 if [[ -n "$GHIDRA_MCP_COMMIT" ]]; then
   log "Pinning Ghidra MCP to commit $GHIDRA_MCP_COMMIT"
-  git -C "$GHIDRA_MCP_DIR" checkout "$GHIDRA_MCP_COMMIT" \
-    || { err "Ghidra MCP checkout of $GHIDRA_MCP_COMMIT failed"; exit 1; }
+  # Use reset --hard (not checkout) so a dirty or diverged tree from
+  # a prior pull doesn't cause the pin to fail. The repo was either
+  # just cloned (clean) or pulled --ff-only above (clean unless the
+  # upstream force-pushed); reset --hard to the pinned commit is safe.
+  git -C "$GHIDRA_MCP_DIR" fetch --prune origin
+  if ! git -C "$GHIDRA_MCP_DIR" reset --hard "$GHIDRA_MCP_COMMIT"; then
+    err "Ghidra MCP reset to $GHIDRA_MCP_COMMIT failed"
+    exit 1
+  fi
 else
   warn "GHIDRA_MCP_COMMIT not set — using HEAD of default branch."
   log "  resolved HEAD: $(git -C "$GHIDRA_MCP_DIR" rev-parse HEAD)"

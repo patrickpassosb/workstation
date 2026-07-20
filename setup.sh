@@ -144,22 +144,23 @@ install_jetbrains_mono_nerd_font() {
   fi
 
   log "Installing JetBrains Mono Nerd Font"
-  # Pinned Nerd Fonts release tag for reproducibility. The SHA256 must
-  # match the JetBrainsMono.zip asset of that exact tag; update both
-  # together when bumping the tag. Fetch the expected hash from
-  # https://github.com/ryanoasis/nerd-fonts/releases/<tag> release notes.
+  # Pinned Nerd Fonts release tag for reproducibility. Set NF_SHA256
+  # to the expected SHA256 of the JetBrainsMono.zip at that tag to
+  # enable full integrity verification.
   local nf_tag="${NF_TAG:-v3.3.0}"
   local nf_sha256="${NF_SHA256:-}"
   local tmp_zip
   tmp_zip="$(mktemp)"
-  trap 'rm -f "$tmp_zip"' RETURN
+  workstation_register_temp "$tmp_zip"
+  local url="https://github.com/ryanoasis/nerd-fonts/releases/download/${nf_tag}/JetBrainsMono.zip"
   if [[ -n "$nf_sha256" ]]; then
-    tmp_zip="$(download_and_verify \
-      "https://github.com/ryanoasis/nerd-fonts/releases/download/${nf_tag}/JetBrainsMono.zip" \
-      "$nf_sha256")" || { err "JetBrains Mono Nerd Font download/verify failed"; return 1; }
+    if ! download_and_verify "$url" "$nf_sha256" "$tmp_zip"; then
+      err "JetBrains Mono Nerd Font download/verify failed"
+      return 1
+    fi
   else
     warn "NF_SHA256 not set — downloading JetBrainsMono.zip without integrity verification (set NF_SHA256 to verify)"
-    if ! safe_curl -o "$tmp_zip" "https://github.com/ryanoasis/nerd-fonts/releases/download/${nf_tag}/JetBrainsMono.zip"; then
+    if ! safe_curl -o "$tmp_zip" "$url"; then
       err "JetBrains Mono Nerd Font download failed"
       return 1
     fi

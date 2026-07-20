@@ -24,8 +24,10 @@ if is_installed docker; then
   log "Pulling AFL++ Docker image: $IMAGE"
   docker pull "$IMAGE" || warn "AFL++ image pull failed; the wrapper can still pull/run it later"
   if [[ "$IMAGE" != *@sha256:* ]]; then
-    warn "AFLPP_DOCKER_IMAGE uses a mutable tag ($IMAGE); pin a digest for reproducibility:"
-    log "  resolved digest: $(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE" 2>/dev/null || echo 'not yet pulled')"
+    warn "AFLPP_DOCKER_IMAGE uses a mutable tag ($IMAGE); pin a digest for reproducibility."
+    log "  resolved manifest-list digest: $(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE" 2>/dev/null || echo 'not yet pulled')"
+    log "  (Note: for multi-arch images this is the manifest-list digest, not the per-arch image digest.)"
+    log "  (To get a per-arch image digest, run: docker image inspect $IMAGE --format='{{.Id}}')"
   fi
   install_docker_wrapper aflpp-docker "$IMAGE" /src
   log "Run: aflpp-docker -h"
@@ -42,7 +44,12 @@ if [[ -d "$AFLPP_MCP_DIR/.git" ]]; then
   else
     warn "AFL++ MCP repo has local changes; fetched only"
   fi
-  git -C "$AFLPP_MCP_DIR" submodule update --init --recursive || warn "AFL++ MCP submodule update failed"
+  # Only sync submodules here when NOT pinning — the post-pin block
+  # re-syncs them after the parent commit is locked down, so doing it
+  # here too would move submodules to the wrong commit before the pin.
+  if [[ -z "$AFLPP_MCP_COMMIT" ]]; then
+    git -C "$AFLPP_MCP_DIR" submodule update --init --recursive || warn "AFL++ MCP submodule update failed"
+  fi
 else
   log "Cloning AFL++ MCP repo with submodules..."
   git clone --recurse-submodules "$AFLPP_MCP_REPO" "$AFLPP_MCP_DIR"
@@ -50,8 +57,12 @@ fi
 
 if [[ -n "$AFLPP_MCP_COMMIT" ]]; then
   log "Pinning AFL++ MCP to commit $AFLPP_MCP_COMMIT"
-  git -C "$AFLPP_MCP_DIR" checkout "$AFLPP_MCP_COMMIT" \
-    || { err "AFL++ MCP checkout of $AFLPP_MCP_COMMIT failed"; exit 1; }
+  # reset --hard (not checkout) — see ghidra.sh for the rationale.
+  git -C "$AFLPP_MCP_DIR" fetch --prune origin
+  if ! git -C "$AFLPP_MCP_DIR" reset --hard "$AFLPP_MCP_COMMIT"; then
+    err "AFL++ MCP reset to $AFLPP_MCP_COMMIT failed"
+    exit 1
+  fi
   git -C "$AFLPP_MCP_DIR" submodule update --init --recursive \
     || warn "AFL++ MCP submodule update after pin failed"
 else
